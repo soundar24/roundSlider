@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>RoundSlider - A sample demo</title>
+    <script src="scripts/jquery-2.1.4.min.js"></script>
+    <link href="../src/roundSlider.css" rel="stylesheet" />
+    <script src="../src/roundSlider.js"></script>
+</head>
+
+<body style="padding: 10px 0 0 20px;">
+
+    <h1>roundSlider <span>- A free jQuery plugin</span></h1>
+    
+    <div class="types">
+        <h3>Slider Types</h3>
+        <div class="container">
+            <div class="control">
+                <div id="type"></div>
+            </div>
+            <div class="options">
+                <select id="Select1" onchange="sliderTypeChanged(this)" style="float: left;">
+                    <option>default</option>
+                    <option>min-range</option>
+                    <option>range</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="types">
+        <h3>Circle Shapes</h3>
+        <div class="container">
+            <div class="control">
+                <div id="shape"></div>
+            </div>
+            <div class="options">
+                <select id="type1" onchange="sliderShapeChanged(this)" style="float: left;">
+                    <option>full</option>
+                    <option>quarter-top-left</option>
+                    <option>quarter-top-right</option>
+                    <option>quarter-bottom-right</option>
+                    <option>quarter-bottom-left</option>
+                    <option>half-top</option>
+                    <option>half-bottom</option>
+                    <option>half-left</option>
+                    <option>half-right</option>
+                    <option>pie</option>
+                    <option>custom-half</option>
+                    <option>custom-quarter</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <br /><br /><br />
+    <p>For more details please check the <a target="_blank" href="http://roundslider.com/" title="http://roundslider.com/">website</a>.</p>
+    <p>
+        See also: 
+        <a target="_blank" href="http://roundslider.com/demos.html">Demos</a>,
+        <a target="_blank" href="http://roundslider.com/document.html">Documentation</a>,
+        <a target="_blank" href="http://roundslider.com/document.html#how_to_install">How to use</a>,
+        <a target="_blank" href="http://roundslider.com/demos.html#customizations">Customizations</a> and
+        <a target="_blank" href="http://roundslider.com/demos.html#different-theming-and-appearances">Different Theming</a>
+    </p>
+    
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#type").roundSlider({
+                value: 45,
+            });
+            $("#shape").roundSlider({
+                value: 60,
+                sliderType: "min-range"
+            });
+        });
+        function sliderTypeChanged(e) {
+            $("#type").roundSlider({ sliderType: e.value });
+        }
+        function sliderShapeChanged(e) {
+            var options = { circleShape: e.value };
+            if (e.value == "pie") options["startAngle"] = 0;
+            else if (e.value == "custom-quarter" || e.value == "custom-half") options["startAngle"] = 45;
+            $("#shape").roundSlider(options);
+        }
+    </script>
+
+    <style>
+        h1 span {
+            font-size: 0.6em;
+        }
+        .types {
+          display: inline-block;
+          padding: 10px 30px;
+          border: 1px dotted;
+          margin-right: 20px;
+          overflow: hidden;
+        }
+        .container {
+          height: 180px;
+          width: 400px;
+        }
+        .container > div {
+          float: left;
+        }
+        .control {
+            margin-right: 70px;
+        }
+    </style>
+</body>
+</html>
