@@ -1,6 +1,6 @@
 /*!
  * roundSlider v1.0 | (c) 2015, Soundar
- * MIT license | http://roundslider.com/licence.html
+ * MIT license | http://roundsliderui.com/licence.html
  */
 
 (function ($, window, undefined) {
@@ -338,6 +338,7 @@
                     var d = this._getAngleValue(point, center), angle, value;
                     angle = d.angle, value = d.value;
                     if (this._rangeSlider) {
+                        handle = this.control.find(".rs-handle.rs-focus");
                         if (handle.length == 1) this._active = parseFloat(handle.attr("index"));
                         else this._active = (this._handle2.value - value) < (value - this._handle1.value) ? 2 : 1;
                         this.bar = this._activeHandleBar();
@@ -809,7 +810,7 @@
                     val = val === false ? false : val;
                 }
             }
-            this.control.trigger(event);
+            this.control.trigger($.Event(event, args));
             return val;
         },
         _bind: function (element, _event, handler) {

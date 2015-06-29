@@ -1,6 +1,6 @@
 ﻿/*!
  * roundSlider v1.0 | (c) 2015, Soundar
- * MIT license | http://roundslider.com/licence.html
+ * MIT license | http://roundsliderui.com/licence.html
  */
 
 .rs-control { position: relative; outline: 0 none; }
@@ -62,7 +62,7 @@
 {
     height: 100%;
     width: 100%;
-    position: absolute;
+    position: relative;
     overflow: hidden;
 }
 .quarter div.rs-block { height: 200%; width: 200%; }
@@ -109,7 +109,6 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 .rs-bar .rs-seperator
 {
     height: 0px;
-    border: 1px solid #bbbcbb;
     border-bottom: medium none;
     display: block;
     float: left;
@@ -153,24 +152,25 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; }
 .rs-tooltip.edit, .rs-tooltip .rs-input { padding: 5px 8px; }
-.rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #bbbcbb; cursor: pointer; }
+.rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
 .rs-readonly .rs-tooltip.edit:hover { border-color: transparent; cursor: default; }
 
 /*** handle types ***/
 .rs-handle { border-radius: 1000px; outline: 0 none; float: left; }
 .rs-handle.rs-handle-square { border-radius: 0px; }
-.rs-handle-dot { border: 1px solid #bbbcbb; padding: 6px; }
+.rs-handle-dot { border: 1px solid #AAAAAA; padding: 6px; }
 .rs-handle-dot:after {
     display: block;
     content: "";
-    border: 1px solid #bbbcbb;
+    border: 1px solid #AAAAAA;
     height: 100%;
     width: 100%;
     border-radius: 100%;
 }
 
 /*** theming - colors ***/
-.rs-border { border: 1px solid #bbbcbb; }
+.rs-seperator { border: 1px solid #AAAAAA; }
+.rs-border { border: 1px solid #AAAAAA; }
 .rs-path-color { background-color: #FFFFFF; }
 .rs-range-color { background-color: #54BBE0; }
 .rs-bg-color { background-color: #FFFFFF; }

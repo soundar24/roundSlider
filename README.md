@@ -8,7 +8,7 @@ Not only a round slider, it supports the quarter, half and pie circle shapes als
 
 ![roundSlider - full slider, pie slider, half slider and quarter slider types](/images/sliders.png)
 
-You can check the demos of various circle shapes [here](http://roundslider.com/demos.html#various-circle-shapes "various circle shapes - demo").
+You can check the demos of various circle shapes [here](http://roundsliderui.com/demos.html#various-circle-shapes "various circle shapes - demo").
 
 ### Browser Support
 
@@ -18,7 +18,7 @@ IE 9+, Chrome, Firefox, Safari, Opera (including Mobile devices).
 
 The roundSlider has several properties and events to interact with the control programmatically. 
 
-To know more about the **Options**, please check the [documentation](http://roundslider.com/document.html#options "Documentation about roundSlider Options").
+To know more about the **Options**, please check the [documentation](http://roundsliderui.com/document.html#options "Documentation about roundSlider Options").
 
 ```javascript
 	$("#slider").roundSlider({
@@ -55,10 +55,10 @@ To know more about the **Options**, please check the [documentation](http://roun
 
 ### Some quick links
 
-- [How to use ?](http://roundslider.com/document.html#how_to_install "roundSlider - How to use ?")
-- [Customizations](http://roundslider.com/demos.html#customizations "roundSlider - Customizations")
-- [Different Theming](http://roundslider.com/demos.html#different-theming-and-appearances "roundSlider - Different theming and appearances")
+- [How to use ?](http://roundsliderui.com/document.html#how_to_install "roundSlider - How to use ?")
+- [Customizations](http://roundsliderui.com/demos.html#customizations "roundSlider - Customizations")
+- [Different Theming](http://roundsliderui.com/demos.html#different-theming-and-appearances "roundSlider - Different theming and appearances")
 
 ### Licence
 
-roundSlider is licensed under the terms of the [MIT license](http://roundslider.com/licence.html "roundSlider - MIT licence").
+roundSlider is licensed under the terms of the [MIT license](http://roundsliderui.com/licence.html "roundSlider - MIT licence").
