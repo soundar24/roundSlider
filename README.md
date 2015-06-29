@@ -55,7 +55,7 @@ To know more about the **Options**, please check the [documentation](http://roun
 
 ### Some quick links
 
-- [How to use ?](http://roundsliderui.com/document.html#how_to_install "roundSlider - How to use ?")
+- [How to use ?](http://roundsliderui.com/document.html#how-to-install "roundSlider - How to use ?")
 - [Customizations](http://roundsliderui.com/demos.html#customizations "roundSlider - Customizations")
 - [Different Theming](http://roundsliderui.com/demos.html#different-theming-and-appearances "roundSlider - Different theming and appearances")
 
