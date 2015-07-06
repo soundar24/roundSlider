@@ -10,6 +10,14 @@ Not only a round slider, it supports the quarter, half and pie circle shapes als
 
 You can check the demos of various circle shapes [here](http://roundsliderui.com/demos.html#various-circle-shapes "various circle shapes - demo").
 
+### Different Theming and Appearances ?
+
+By customizing the CSS styles we can make different appearances.
+
+![roundSlider - different theming and appearances](/images/appearances.png)
+
+You can check the detailed demos [here](http://roundsliderui.com/demos.html#different-theming-and-appearances "different theming and appearances").
+
 ### Browser Support
 
 IE 9+, Chrome, Firefox, Safari, Opera (including Mobile devices).
