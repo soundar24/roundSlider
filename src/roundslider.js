@@ -9,12 +9,19 @@
 
     var pluginName = "roundSlider";
 
+    // The plugin initialization
+    $.fn[pluginName] = function (options) {
+        return CreateRoundSlider.call(this, options, arguments);
+    };
+
     RoundSlider.prototype = {
 
         pluginName: pluginName,
         version: "1.0",
-        control: null,
-        options: null,
+
+        // after the control initialization the updated default values
+        // are merged into the options
+        options: {},
 
         // default properties of the plugin. while add a new property,
         // that type should be included in the "_props:" for validation
@@ -48,7 +55,6 @@
             stop: null,
             tooltipFormat: null
         },
-
         _props: function () {
             return {
                 numberType: ["min", "max", "step", "radius", "width", "startAngle"],
@@ -57,6 +63,7 @@
                 stringType: ["sliderType", "circleShape", "handleShape"]
             };
         },
+        control: null,
         _init: function () {
             this._initialize();
             this._update();
@@ -1091,10 +1098,6 @@
         return this;
     }
 
-    // The plugin initialization
-    $.fn[pluginName] = function (options) {
-        return CreateRoundSlider.call(this, options, arguments);
-    };
     $.fn[pluginName].prototype = RoundSlider.prototype;
 
 })(jQuery, window);
