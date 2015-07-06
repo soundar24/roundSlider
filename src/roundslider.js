@@ -808,8 +808,8 @@
         },
         _raise: function (event, args) {
             var fn = this.options[event], val = true;
+            args = args || {};
             if (fn) {
-                args = args || {};
                 args["type"] = event;
                 if (typeof fn === "string") fn = window[fn];
                 if ($.isFunction(fn)) {
@@ -817,7 +817,7 @@
                     val = val === false ? false : val;
                 }
             }
-            this.control.trigger($.Event(event, args));
+            this.control.trigger($.Event ? $.Event(event, args) : event);
             return val;
         },
         _bind: function (element, _event, handler) {
