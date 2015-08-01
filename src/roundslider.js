@@ -75,7 +75,6 @@
             this._originalObj = this.control.clone();
             this._isReadOnly = false;
             this._checkDataType();
-            this._handle1 = this._handle2 = { angle: this._valueToAngle(this.options.min), value: this.options.min };
             this._refreshCircleShape();
         },
         _render: function () {
@@ -87,7 +86,6 @@
 
             this._setRadius();
             if (this._isBrowserSupport) {
-                this._update();
                 this._createLayers();
                 this._setProperties();
                 this._setValue();
@@ -104,6 +102,7 @@
             this._validateSliderType();
             this._updateStartEnd();
             this._validateStartEnd();
+            this._handle1 = this._handle2 = this._handleDefaults();
             this._analyzeModelValue();
             this._validateModelValue();
         },
@@ -146,7 +145,8 @@
             }
             else {
                 if (this._showRange) this._setHandleValue(1);
-                this._setHandleValue(parseFloat(this.bar.children().attr("index")));
+                var index = (this.options.sliderType == "default") ? (this._active || 1) : parseFloat(this.bar.children().attr("index"));
+                this._setHandleValue(index);
             }
         },
         _appendTooltip: function () {
@@ -207,7 +207,7 @@
         _setHandleValue: function (index) {
             this._active = index;
             var handle = this["_handle" + index];
-            if (this._rangeSlider) this.bar = this._activeHandleBar();
+            if (this.options.sliderType != "min-range") this.bar = this._activeHandleBar();
             this._changeSliderValue(handle.value, handle.angle);
         },
         _setAnimation: function () {
@@ -281,8 +281,10 @@
 
             this.bar = bar;
             this._active = index;
+            if (index != 1 && index != 2) this["_handle" + index] = this._handleDefaults();
             this._bind(handle, "focus", this._handleFocus);
             this._bind(handle, "blur", this._handleBlur);
+            return handle;
         },
         _refreshHandle: function () {
             var hSize = this.options.handleSize, h, w, isSquare = true;
@@ -300,6 +302,9 @@
             var diff = (this.options.width + this._border() - w) / 2;
             this._handles().css({ height: h, width: w, "margin": -h / 2 + "px 0 0 " + diff + "px" });
         },
+        _handleDefaults: function () {
+            return { angle: this._valueToAngle(this.options.min), value: this.options.min };
+        },
         _handles: function () {
             return this.container.children("div.rs-bar").find(".rs-handle");
         },
@@ -307,11 +312,12 @@
             return $(this.container.children("div.rs-bar")[this._active - 1]);
         },
         _handleArgs: function () {
+            var _handle = this["_handle" + this._active];
             return {
                 element: this._activeHandleBar().children(),
-                index: (this.options.sliderType == "range") ? this._active : 1,
-                value: this["_handle" + this._active].value,
-                angle: this["_handle" + this._active].angle
+                index: this._active,
+                value: _handle ? _handle.value : null,
+                angle: _handle ? _handle.angle : null
             };
         },
         _raiseEvent: function (event) {
@@ -680,6 +686,8 @@
             if (circel_shapes.indexOf(circleShape) == -1) {
                 var index = shape_codes.indexOf(circleShape);
                 if (index != -1) circleShape = circel_shapes[index];
+                else if (circleShape == "half") circleShape = "half-top";
+                else if (circleShape == "quarter") circleShape = "quarter-top-left";
                 else circleShape = "full";
             }
             this.options.circleShape = circleShape;
@@ -718,7 +726,7 @@
             // to check boolean datatype
             for (i in props.stringType) {
                 prop = props.stringType[i], value = m[prop];
-                m[prop] = value.toLowerCase();
+                m[prop] = ("" + value).toLowerCase();
             }
         },
         _validateSliderType: function () {
@@ -771,7 +779,7 @@
             this.options.value = t;
         },
         _validateModelValue: function () {
-            var m = this.options, val = m.value;
+            var val = this.options.value;
             if (this._rangeSlider) {
                 var parts = val.split(","), val1 = parseFloat(parts[0]), val2 = parseFloat(parts[1]);
                 val1 = this._limitValue(val1);
@@ -783,9 +791,9 @@
                 this.options.value = this._handle1.value + "," + this._handle2.value;
             }
             else {
-                var index = this._showRange ? 2 : 1;
+                var index = this._showRange ? 2 : (this._active || 1);
                 this["_handle" + index] = this._processStepByValue(this._limitValue(val));
-                if (this._showRange) this._handle1 = { angle: this._valueToAngle(m.min), value: m.min };
+                if (this._showRange) this._handle1 = this._handleDefaults();
                 this.options.value = this["_handle" + index].value;
             }
         },
@@ -974,10 +982,13 @@
         },
         setValue: function (value, index) {
             if (value && isNumber(value)) {
-                if (this.options.sliderType == "range" && index && isNumber(index)) {
-                    var i = parseFloat(index), val = parseFloat(value);
-                    if (i == 1) value = val + "," + this._handle2.value;
-                    else if (i == 2) value = this._handle1.value + "," + val;
+                if (index && isNumber(index)) {
+                    if (this.options.sliderType == "range") {
+                        var i = parseFloat(index), val = parseFloat(value);
+                        if (i == 1) value = val + "," + this._handle2.value;
+                        else if (i == 2) value = this._handle1.value + "," + val;
+                    }
+                    else if (this.options.sliderType == "default") this._active = index;
                 }
                 this._set("value", value);
             }
