@@ -1099,7 +1099,7 @@
             }
             else if (typeof options === "string") {
                 if (typeof instance[options] === "function") {
-                    if ((options == "option" || options.startsWith("get")) && args[2] === undefined) {
+                    if ((options === "option" || (typeof options.startsWith === 'function' && options.startsWith("get"))) && args[2] === undefined) {
                         return instance[options](args[1]);
                     }
                     instance[options](args[1], args[2]);
