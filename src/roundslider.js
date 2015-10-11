@@ -973,7 +973,7 @@
             return this;
         },
         getValue: function (index) {
-            if (this.options.sliderType == "range" && index && isNumber(index)) {
+            if (this.options.sliderType == "range" && isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
@@ -981,8 +981,8 @@
             return this._get("value");
         },
         setValue: function (value, index) {
-            if (value && isNumber(value)) {
-                if (index && isNumber(index)) {
+            if (isNumber(value)) {
+                if (isNumber(index)) {
                     if (this.options.sliderType == "range") {
                         var i = parseFloat(index), val = parseFloat(value);
                         if (i == 1) value = val + "," + this._handle2.value;
