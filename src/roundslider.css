@@ -106,13 +106,22 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
     height: 0;
     z-index: 10;
 }
-.rs-bar .rs-seperator
-{
+.rs-bar.rs-rounded {
+    z-index: 5;
+}
+.rs-bar .rs-seperator {
     height: 0px;
-    border-bottom: medium none;
     display: block;
     float: left;
 }
+.rs-bar:not(.rs-rounded) .rs-seperator {
+    border-left: none;
+    border-right: none;
+}
+.rs-bar.rs-start  .rs-seperator { border-top: none; }
+.rs-bar.rs-end  .rs-seperator { border-bottom: none; }
+.rs-bar.rs-start.rs-rounded .rs-seperator { border-radius: 0 0 1000px 1000px; }
+.rs-bar.rs-end.rs-rounded .rs-seperator { border-radius: 1000px 1000px 0 0; }
 .full .rs-bar, .half .rs-bar { width: 50%; }
 .half.left .rs-bar, .half.right .rs-bar, .quarter .rs-bar { width: 100%; }
 .full .rs-bar, .half.left .rs-bar, .half.right .rs-bar { top: 50%; }

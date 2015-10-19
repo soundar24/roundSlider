@@ -42,6 +42,7 @@
             disabled: false,
             keyboardAction: true,
             mouseScrollAction: false,
+            roundedCorner: false,
             sliderType: "default",
             circleShape: "full",
             handleShape: "round",
@@ -59,7 +60,7 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "startAngle"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction"],
+                    "keyboardAction", "mouseScrollAction", "roundedCorner"],
                 stringType: ["sliderType", "circleShape", "handleShape"]
             };
         },
@@ -247,7 +248,8 @@
             this.control.css(style);
             this.container.css(style);
         },
-        _border: function () {
+        _border: function (seperator) {
+            if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
         _appendHandle: function () {
@@ -255,12 +257,27 @@
             if (this._rangeSlider || this._showRange) this._createHandle(2);
             this._startLine = this._addSeperator(this._start, "rs-start");
             this._endLine = this._addSeperator(this._start + this._end, "rs-end");
+            this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
-            var line = createElement("span.rs-seperator").css({ "width": this.options.width, "margin-left": this._border() / 2 });
+            var line = createElement("span.rs-seperator rs-border"), width = this.options.width, _border = this._border();
             var lineWrap = createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
             this.container.append(lineWrap);
             return lineWrap;
+        },
+        _refreshSeperator: function () {
+            var bars = this._startLine.add(this._endLine), seperators = bars.children().removeAttr("style");
+            var opt = this.options, width = opt.width, _border = this._border(), size = width + _border;
+            if (opt.roundedCorner && opt.circleShape != "full") {
+                bars.addClass("rs-rounded");
+                seperators.css({ width: size, height: size / 2 });
+                this._startLine.children().addClass(opt.sliderType == "min-range" ? "rs-range-color" : "rs-path-color");
+                this._endLine.children().css({ "margin-top": size / -2 }).addClass("rs-path-color");
+            }
+            else {
+                bars.removeClass("rs-rounded");
+                seperators.css({ "width": size, "margin-top": this._border(true) / -2 }).removeClass("rs-range-color rs-path-color");
+            }
         },
         _updateSeperator: function () {
             this._startLine.rsRotate(this._start);
@@ -274,7 +291,7 @@
             var label = id + "handle" + (this.options.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
-            var bar = createElement("div.rs-bar rs-transition").css("z-index", "4").append(handle).rsRotate(this._start);
+            var bar = createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle).rsRotate(this._start);
             bar.addClass(this.options.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
             this.container.append(bar);
             this._refreshHandle();
@@ -345,11 +362,17 @@
 
                 if (distance >= innerDistance && distance <= outerDistance) {
                     e.preventDefault();
-                    var handle = this.control.find(".rs-handle.rs-focus");
+                    var handle = this.control.find(".rs-handle.rs-focus"), angle, value;
                     //if (handle.length == 0)
                     this.control.attr("tabindex", "0").focus().removeAttr("tabindex");
-                    var d = this._getAngleValue(point, center), angle, value;
-                    angle = d.angle, value = d.value;
+                    if ($target.hasClass("rs-seperator")) {
+                        value = $target.parent().hasClass("rs-start") ? this.options.min : this.options.max;
+                        angle = this._valueToAngle(value);
+                    }
+                    else {
+                        var d = this._getAngleValue(point, center);
+                        angle = d.angle, value = d.value;
+                    }
                     if (this._rangeSlider) {
                         handle = this.control.find(".rs-handle.rs-focus");
                         if (handle.length == 1) this._active = parseFloat(handle.attr("index"));
@@ -402,8 +425,8 @@
             }
 
             // updates the class for change z-index
-            this.control.find("div.rs-bar").css("z-index", "4");
-            this.bar.css("z-index", "5");
+            this.control.find("div.rs-bar").css("z-index", "7");
+            this.bar.css("z-index", "8");
         },
         _handleBlur: function (e) {
             this._handles().removeClass("rs-focus");
@@ -930,6 +953,9 @@
                     break;
                 case "mouseScrollAction":
                     this._bindScrollEvents(this.options.mouseScrollAction ? "_bind" : "_unbind");
+                    break;
+                case "roundedCorner":
+                    this._refreshSeperator();
                     break;
                 case "circleShape":
                     this._refreshCircleShape();
