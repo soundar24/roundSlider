@@ -927,7 +927,7 @@
                     this._updateWidth();
                     this._updateTooltipPos();
                     this._addAnimation();
-                    this.container.children().find(".rs-seperator").css({ "width": this.options.width, "margin-left": this._border() / 2 });
+                    this._refreshSeperator();
                     break;
                 case "handleSize":
                     this._refreshHandle();
