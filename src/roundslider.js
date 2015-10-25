@@ -1,5 +1,5 @@
 /*!
- * roundSlider v1.0 | (c) 2015, Soundar
+ * roundSlider v1.1 | (c) 2015, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
@@ -290,9 +290,9 @@
             var opt = this.options, width = opt.width, _border = this._border(), size = width + _border;
             if (opt.roundedCorner && opt.circleShape != "full") {
                 bars.addClass("rs-rounded");
-                seperators.css({ width: size, height: size / 2 });
-                this._startLine.children().addClass(opt.sliderType == "min-range" ? "rs-range-color" : "rs-path-color");
-                this._endLine.children().css({ "margin-top": size / -2 }).addClass("rs-path-color");
+                seperators.css({ width: size, height: (size / 2) + 1 });
+                this._startLine.children().css("margin-top", -1).addClass(opt.sliderType == "min-range" ? "rs-range-color" : "rs-path-color");
+                this._endLine.children().css("margin-top", size / -2).addClass("rs-path-color");
             }
             else {
                 bars.removeClass("rs-rounded");
@@ -363,9 +363,10 @@
         _raiseEvent: function (event) {
             this._updateTooltip();
             if (this["_pre" + event] !== this.options.value) {
+                var preValue = this["_pre" + event];
                 this["_pre" + event] = this.options.value;
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
-                return this._raise(event, { value: this.options.value, "handle": this._handleArgs() });
+                return this._raise(event, { value: this.options.value, preValue: preValue, "handle": this._handleArgs() });
             }
         },
 
