@@ -66,14 +66,33 @@
         },
         control: null,
         _init: function () {
+            this._isBrowserSupport = this._isBrowserSupported();
+            this._isKO = false;
+            this._isAngular = false;
+            if (this.control.is("input")) {
+                this._isInputType = true;
+                this._hiddenField = this.control;
+                this.control = createElement("div");
+                this.control.insertAfter(this._hiddenField);
+                this.options.value = this._hiddenField.val() || this.options.value;
+                var that = this;
+                this._checkKO() && setTimeout(function () { that._checkKO(); }, 1);
+                this._checkAngular();
+            }
+            this._bindOnDrag = false;
+            var _updateOn = this._dataElement().attr("data-updateon");
+            if (typeof _updateOn == "string") { if (_updateOn == "drag") this._bindOnDrag = true; }
+            else if (this._isAngular) this._bindOnDrag = true;
+
+            this._onInit();
+        },
+        _onInit: function () {
             this._initialize();
             this._update();
             this._render();
         },
         _initialize: function () {
-            this._isBrowserSupport = this._isBrowserSupported();
             if (!this._isBrowserSupport) return;
-            this._originalObj = this.control.clone();
             this._isReadOnly = false;
             this._checkDataType();
             this._refreshCircleShape();
@@ -97,6 +116,7 @@
                 var msg = createElement("div.rs-msg");
                 msg.html(typeof this._throwError === "function" ? this._throwError() : this._throwError);
                 this.control.empty().addClass("rs-error").append(msg);
+                if (this._isInputType) this.control.append(this._dataElement());
             }
         },
         _update: function () {
@@ -287,7 +307,7 @@
             var handle = createElement("div.rs-handle rs-move");
             handle.attr({ "index": index, "tabIndex": "0" });
 
-            var id = this.control[0].id, id = id ? id + "_" : "";
+            var id = this._dataElement()[0].id, id = id ? id + "_" : "";
             var label = id + "handle" + (this.options.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
@@ -337,11 +357,14 @@
                 angle: _handle ? _handle.angle : null
             };
         },
+        _dataElement: function () {
+            return this._isInputType ? this._hiddenField : this.control;
+        },
         _raiseEvent: function (event) {
             this._updateTooltip();
-            if (event == "change") this._updateHidden();
             if (this["_pre" + event] !== this.options.value) {
                 this["_pre" + event] = this.options.value;
+                if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
                 return this._raise(event, { value: this.options.value, "handle": this._handleArgs() });
             }
         },
@@ -559,6 +582,39 @@
             }
             else this.bar.children().attr({ "aria-valuemin": min, "aria-valuemax": max });
         },
+        // Listener for KO binding
+        _checkKO: function () {
+            var _data = this._dataElement().data("bind");
+            if (typeof _data == "string" && typeof ko == "object") {
+                var _vm = ko.dataFor(this._dataElement()[0]);
+                if (typeof _vm == "undefined") return true;
+                var _all = _data.split(","), _handler;
+                for (var i = 0; i < _all.length; i++) {
+                    var d = _all[i].split(":");
+                    if ($.trim(d[0]) == "value") {
+                        _handler = $.trim(d[1]);
+                        break;
+                    }
+                }
+                if (_handler) {
+                    this._isKO = true;
+                    ko.computed(function () { this.option("value", _vm[_handler]()); }, this);
+                }
+            }
+        },
+        // Listener for Angular binding
+        _checkAngular: function () {
+            if (typeof angular == "object" && typeof angular.element == "function") {
+                this._ngName = this._dataElement().attr("ng-model");
+                if (typeof this._ngName == "string") {
+                    this._isAngular = true; var that = this;
+                    this._scope().$watch(this._ngName, function (newValue, oldValue) { that.option("value", newValue); });
+                }
+            }
+        },
+        _scope: function () {
+            return angular.element(this._dataElement()).scope();
+        },
         _getXY: function (e) {
             if (e.type.indexOf("mouse") == -1) e = (e.originalEvent || e).changedTouches[0];
             return { x: e.pageX, y: e.pageY };
@@ -633,13 +689,18 @@
             return angle;
         },
         _appendHiddenField: function () {
-            this._hiddenField = createElement("input").attr({
-                "type": "hidden", "name": this.control[0].id || "", value: this.options.value
+            this._hiddenField = this._hiddenField || createElement("input");
+            this._hiddenField.attr({
+                "type": "hidden", "name": this._dataElement()[0].id || ""
             });
             this.control.append(this._hiddenField);
+            this._updateHidden();
         },
         _updateHidden: function () {
-            this._hiddenField.val(this.options.value);
+            this._hiddenField.val(this.options.value).trigger("change");
+            if (this._isAngular) {
+                this._scope()[this._ngName] = this._hiddenField.val();
+            }
         },
         _updateTooltip: function () {
             if (this.tooltip && !this.tooltip.hasClass("hover"))
@@ -859,14 +920,15 @@
             else $(element).unbind(_event);
         },
         _getInstance: function () {
-            return $data(this.control[0], pluginName);
+            return $data(this._dataElement()[0], pluginName);
         },
         _removeData: function () {
-            var control = this.control[0];
+            var control = this._dataElement()[0];
             $.removeData && $.removeData(control, pluginName);
             if (control.id) delete window[control.id];
         },
         _destroyControl: function () {
+            if (this._isInputType) this._dataElement().insertAfter(this.control).attr("type", "text");
             this.control.empty().removeClass("rs-control").height("").width("");
             this._removeAnimation();
             this._bindControlEvents("_unbind");
@@ -965,7 +1027,7 @@
                     }
                 case "sliderType":
                     this._destroyControl();
-                    this._init();
+                    this._onInit();
                     break;
             }
             return this;
@@ -1033,8 +1095,7 @@
             if (!this._getInstance()) return;
             this._destroyControl();
             this._removeData();
-            this._originalObj.insertAfter(this.control);
-            this.control.remove();
+            if (this._isInputType) this.control.remove();
         }
     };
 
