@@ -109,6 +109,7 @@
                 this._createLayers();
                 this._setProperties();
                 this._setValue();
+                this._updateTooltipPos();
                 this._bindControlEvents("_bind");
                 this._checkIE();
             }
@@ -150,7 +151,7 @@
             this._appendHiddenField();
         },
         _setProperties: function () {
-            this._prechange = this._predrag = this.options.value;
+            this._preValue = this.options.value;
             this._setHandleShape();
             this._addAnimation();
             this._appendTooltip();
@@ -304,15 +305,16 @@
             this._endLine.rsRotate(this._start + this._end);
         },
         _createHandle: function (index) {
-            var handle = createElement("div.rs-handle rs-move");
+            var handle = createElement("div.rs-handle rs-move"), o = this.options, hs;
+            if ((hs = o.handleShape) != "round") handle.addClass("rs-handle-" + hs);
             handle.attr({ "index": index, "tabIndex": "0" });
 
             var id = this._dataElement()[0].id, id = id ? id + "_" : "";
-            var label = id + "handle" + (this.options.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
+            var label = id + "handle" + (o.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
             var bar = createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle).rsRotate(this._start);
-            bar.addClass(this.options.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
+            bar.addClass(o.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
             this.container.append(bar);
             this._refreshHandle();
 
@@ -362,9 +364,9 @@
         },
         _raiseEvent: function (event) {
             this._updateTooltip();
-            if (this["_pre" + event] !== this.options.value) {
-                var preValue = this["_pre" + event];
-                this["_pre" + event] = this.options.value;
+            if (this._preValue !== this.options.value) {
+                var preValue = this._preValue;
+                this._preValue = this.options.value;
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
                 return this._raise(event, { value: this.options.value, preValue: preValue, "handle": this._handleArgs() });
             }
@@ -418,7 +420,7 @@
             this.bar = $target.parent();
             this._active = parseFloat($target.attr("index"));
             this._handles().removeClass("rs-move");
-            this._raise("start", { "handle": this._handleArgs() });
+            this._raise("start", { value: this.options.value, "handle": this._handleArgs() });
         },
         _handleMove: function (e) {
             e.preventDefault();
@@ -434,7 +436,7 @@
             this._bindMouseEvents("_unbind");
             this._addAnimation();
             this._raiseEvent("change");
-            this._raise("stop", { "handle": this._handleArgs() });
+            this._raise("stop", { value: this.options.value, "handle": this._handleArgs() });
         },
         _handleFocus: function (e) {
             if (this._isReadOnly) return;
