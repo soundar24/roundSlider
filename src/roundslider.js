@@ -151,7 +151,7 @@
             this._appendHiddenField();
         },
         _setProperties: function () {
-            this._preValue = this.options.value;
+            this._prechange = this._predrag = this.options.value;
             this._setHandleShape();
             this._addAnimation();
             this._appendTooltip();
@@ -364,9 +364,9 @@
         },
         _raiseEvent: function (event) {
             this._updateTooltip();
-            if (this._preValue !== this.options.value) {
-                var preValue = this._preValue;
-                this._preValue = this.options.value;
+            var preValue = this["_pre" + event];
+            if (preValue !== this.options.value) {
+                this["_pre" + event] = this.options.value;
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
                 return this._raise(event, { value: this.options.value, preValue: preValue, "handle": this._handleArgs() });
             }
