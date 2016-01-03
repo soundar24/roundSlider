@@ -42,7 +42,7 @@
             disabled: false,
             keyboardAction: true,
             mouseScrollAction: false,
-            roundedCorner: false,
+            lineCap: "square",
             sliderType: "default",
             circleShape: "full",
             handleShape: "round",
@@ -60,8 +60,8 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "startAngle"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction", "roundedCorner"],
-                stringType: ["sliderType", "circleShape", "handleShape"]
+                    "keyboardAction", "mouseScrollAction"],
+                stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
             };
         },
         control: null,
@@ -197,9 +197,10 @@
         },
         _editTooltip: function (e) {
             if (!this.tooltip.hasClass("edit") || this._isReadOnly) return;
+            var border = parseFloat(this.tooltip.css("border-width")) * 2;
             this.input = createElement("input.rs-input rs-tooltip-text").css({
-                height: this.tooltip.outerHeight(),
-                width: this.tooltip.outerWidth()
+                height: this.tooltip.outerHeight() - border,
+                width: this.tooltip.outerWidth() - border
             });
             this.tooltip.html(this.input).removeClass("edit").addClass("hover");
 
@@ -216,7 +217,10 @@
                 this._setValue();
                 this.input.val(this._getTooltipValue(true));
             }
-            else this.tooltip.addClass("edit").removeClass("hover");
+            else {
+                this.tooltip.addClass("edit").removeClass("hover");
+                this._updateTooltip();
+            }
             this._raiseEvent("change");
         },
         _setHandleShape: function () {
@@ -289,7 +293,7 @@
         _refreshSeperator: function () {
             var bars = this._startLine.add(this._endLine), seperators = bars.children().removeAttr("style");
             var opt = this.options, width = opt.width, _border = this._border(), size = width + _border;
-            if (opt.roundedCorner && opt.circleShape != "full") {
+            if (opt.lineCap == "round" && opt.circleShape != "full") {
                 bars.addClass("rs-rounded");
                 seperators.css({ width: size, height: (size / 2) + 1 });
                 this._startLine.children().css("margin-top", -1).addClass(opt.sliderType == "min-range" ? "rs-range-color" : "rs-path-color");
@@ -347,14 +351,17 @@
         _handles: function () {
             return this.container.children("div.rs-bar").find(".rs-handle");
         },
-        _activeHandleBar: function () {
-            return $(this.container.children("div.rs-bar")[this._active - 1]);
+        _activeHandleBar: function (index) {
+            index = (index != undefined) ? index : this._active;
+            return $(this.container.children("div.rs-bar")[index - 1]);
         },
-        _handleArgs: function () {
-            var _handle = this["_handle" + this._active];
+        _handleArgs: function (index) {
+            index = (index != undefined) ? index : this._active;
+            var _handle = this["_handle" + index];
             return {
-                element: this._activeHandleBar().children(),
-                index: this._active,
+                element: this._activeHandleBar(index).children(),
+                index: index,
+                isActive: index == this._active,
                 value: _handle ? _handle.value : null,
                 angle: _handle ? _handle.angle : null
             };
@@ -363,10 +370,10 @@
             return this._isInputType ? this._hiddenField : this.control;
         },
         _raiseEvent: function (event) {
-            this._updateTooltip();
             var preValue = this["_pre" + event];
             if (preValue !== this.options.value) {
                 this["_pre" + event] = this.options.value;
+                this._updateTooltip();
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
                 return this._raise(event, { value: this.options.value, preValue: preValue, "handle": this._handleArgs() });
             }
@@ -555,7 +562,7 @@
                 this._updateARIA(value);
             }
             else if ((this._active == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
-                    (this._active == 2 && oAngle >= this._oriAngle(this._handle1.angle))) {
+                    (this._active == 2 && oAngle >= this._oriAngle(this._handle1.angle)) || this._invertRange) {
 
                 this["_handle" + this._active] = { angle: angle, value: value };
                 this.options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
@@ -563,7 +570,7 @@
                 this._updateARIA(value);
 
                 var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
-                if (dAngle <= 180) o2 = "0", o3 = "1";
+                if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
                 this.block2.css("opacity", o2);
                 this.block3.css("opacity", o3);
 
@@ -737,13 +744,13 @@
             if (this._rangeSlider) {
                 var p = this.options.value.split(",");
                 if (isNormal) return p[0] + " - " + p[1];
-                return this._tooltipValue(p[0]) + " - " + this._tooltipValue(p[1]);
+                return this._tooltipValue(p[0], 1) + " - " + this._tooltipValue(p[1], 2);
             }
             if (isNormal) return this.options.value;
             return this._tooltipValue(this.options.value);
         },
-        _tooltipValue: function (value) {
-            var val = this._raise("tooltipFormat", { value: value, "handle": this._handleArgs() });
+        _tooltipValue: function (value, index) {
+            var val = this._raise("tooltipFormat", { value: value, "handle": this._handleArgs(index) });
             return (val != null && typeof val !== "boolean") ? val : value;
         },
         _validateStartAngle: function () {
@@ -849,6 +856,7 @@
         },
         _analyzeModelValue: function () {
             var val = this.options.value, min = this.options.min, max = this.options.max, last, t;
+            if (val instanceof Array) val = val.toString();
             var parts = (typeof val == "string") ? val.split(",") : [val];
 
             if (this._rangeSlider) {
@@ -871,7 +879,7 @@
                 var parts = val.split(","), val1 = parseFloat(parts[0]), val2 = parseFloat(parts[1]);
                 val1 = this._limitValue(val1);
                 val2 = this._limitValue(val2);
-                if (val1 > val2) val2 = val1;
+                if (!this._invertRange) if (val1 > val2) val2 = val1;
 
                 this._handle1 = this._processStepByValue(val1);
                 this._handle2 = this._processStepByValue(val2);
@@ -1019,7 +1027,7 @@
                 case "mouseScrollAction":
                     this._bindScrollEvents(this.options.mouseScrollAction ? "_bind" : "_unbind");
                     break;
-                case "roundedCorner":
+                case "lineCap":
                     this._refreshSeperator();
                     break;
                 case "circleShape":
