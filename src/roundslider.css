@@ -3,7 +3,7 @@
  * MIT license | http://roundsliderui.com/licence.html
  */
 
-.rs-control { position: relative; outline: 0 none; }
+.rs-control { position: relative; outline: 0 none; -ms-touch-action:none; touch-action: none; }
 .rs-container { position: relative; }
 .rs-control *, .rs-control *:before, .rs-control *:after {
     -webkit-box-sizing: border-box;
