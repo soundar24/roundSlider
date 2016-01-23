@@ -435,7 +435,7 @@
         _handleMove: function (e) {
             e.preventDefault();
             var point = this._getXY(e), center = this._getCenterPoint();
-            var d = this._getAngleValue(point, center), angle, value;
+            var d = this._getAngleValue(point, center, true), angle, value;
             angle = d.angle, value = d.value;
 
             this._changeSliderValue(value, angle);
@@ -640,16 +640,17 @@
             };
             return center;
         },
-        _getAngleValue: function (point, center) {
+        _getAngleValue: function (point, center, isDrag) {
             var deg = Math.atan2(point.y - center.y, center.x - point.x);
             var angle = (-deg / (Math.PI / 180));
             if (angle < this._start) angle += 360;
-            angle = this._checkAngle(angle);
+            angle = this._checkAngle(angle, isDrag);
             return this._processStepByAngle(angle);;
         },
-        _checkAngle: function (angle) {
+        _checkAngle: function (angle, isDrag) {
             var o_angle = this._oriAngle(angle);
             if (o_angle > this._end) {
+                if (!isDrag) return this["_handle" + this._active].angle;
                 var preAngle = this._oriAngle(this["_handle" + this._active].angle);
                 angle = this._start + (preAngle <= this._end - preAngle ? 0 : this._end);
             }
