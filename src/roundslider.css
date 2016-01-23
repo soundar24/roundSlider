@@ -1,5 +1,5 @@
 ﻿/*!
- * roundSlider v1.1 | (c) 2015, Soundar
+ * roundSlider v1.2 | (c) 2015-2016, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
@@ -145,7 +145,6 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 /*** tooltip styles ***/
 .rs-tooltip
 {
-    text-align: center;
     position: absolute;
     cursor: default;
     border: 1px solid transparent;
@@ -159,7 +158,7 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 .half.top .rs-tooltip, .half.bottom .rs-tooltip { left: 50%; }
 .half.left .rs-tooltip, .half.right .rs-tooltip { top: 50%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; }
-.rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; }
+.rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; }
 .rs-tooltip.edit, .rs-tooltip .rs-input { padding: 5px 8px; }
 .rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
 .rs-readonly .rs-tooltip.edit:hover { border-color: transparent; cursor: default; }
