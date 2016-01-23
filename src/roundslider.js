@@ -151,7 +151,7 @@
             this._appendHiddenField();
         },
         _setProperties: function () {
-            this._prechange = this._predrag = this.options.value;
+            this._updatePre();
             this._setHandleShape();
             this._addAnimation();
             this._appendTooltip();
@@ -159,6 +159,9 @@
             if (this.options.disabled) this.disable();
             else if (this.options.readOnly) this._readOnly(true);
             if (this.options.mouseScrollAction) this._bindScrollEvents("_bind");
+        },
+        _updatePre: function () {
+            this._prechange = this._predrag = this.options.value;
         },
         _setValue: function () {
             if (this._rangeSlider) {
@@ -988,6 +991,7 @@
                     this._analyzeModelValue();
                     this._validateModelValue();
                     this._setValue();
+                    this._updatePre();
                     this._updateHidden();
                     this._updateTooltip();
                     break;
