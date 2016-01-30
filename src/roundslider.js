@@ -711,10 +711,10 @@
             this._updateHidden();
         },
         _updateHidden: function () {
-            this._hiddenField.val(this.options.value).trigger("change");
-            if (this._isAngular) {
-                this._scope()[this._ngName] = this._hiddenField.val();
-            }
+            var val = this.options.value;
+            this._hiddenField.val(val);
+            if (this._isKO || this._isAngular) this._hiddenField.trigger("change");
+            if (this._isAngular) this._scope()[this._ngName] = val;
         },
         _updateTooltip: function () {
             if (this.tooltip && !this.tooltip.hasClass("hover"))
@@ -914,8 +914,9 @@
                 this.control.css({ "-ms-touch-action": "none", "touch-action": "none" });
         },
         _raise: function (event, args) {
-            var fn = this.options[event], val = true;
-            args = args || {};
+            var o = this.options, fn = o[event], val = true;
+            args = args || { value: o.value };
+            args["options"] = o;
             if (fn) {
                 args["type"] = event;
                 if (typeof fn === "string") fn = window[fn];
