@@ -157,7 +157,7 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 .left .rs-tooltip { right: 0; }
 .half.top .rs-tooltip, .half.bottom .rs-tooltip { left: 50%; }
 .half.left .rs-tooltip, .half.right .rs-tooltip { top: 50%; }
-.rs-tooltip .rs-input { outline: 0 none; border: none; }
+.rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; }
 .rs-tooltip.edit, .rs-tooltip .rs-input { padding: 5px 8px; }
 .rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
