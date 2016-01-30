@@ -200,14 +200,14 @@
         },
         _editTooltip: function (e) {
             if (!this.tooltip.hasClass("edit") || this._isReadOnly) return;
-            var border = parseFloat(this.tooltip.css("border-width")) * 2;
+            var border = parseFloat(this.tooltip.css("border-left-width")) * 2;
             this.input = createElement("input.rs-input rs-tooltip-text").css({
                 height: this.tooltip.outerHeight() - border,
                 width: this.tooltip.outerWidth() - border
             });
             this.tooltip.html(this.input).removeClass("edit").addClass("hover");
 
-            this.input.val(this._getTooltipValue(true)).focus();
+            this.input.focus().val(this._getTooltipValue(true));
 
             this._bind(this.input, "blur", this._focusOut);
             this._bind(this.input, "change", this._focusOut);
