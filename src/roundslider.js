@@ -1096,6 +1096,7 @@
                     else if (this.options.sliderType == "default") this._active = index;
                 }
                 this._set("value", value);
+                this._raise("change");
             }
         },
         disable: function () {
