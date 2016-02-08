@@ -648,11 +648,17 @@
             return this._processStepByAngle(angle);;
         },
         _checkAngle: function (angle, isDrag) {
-            var o_angle = this._oriAngle(angle);
+            var o_angle = this._oriAngle(angle),
+                preAngle = this["_handle" + this._active].angle,
+                o_preAngle = this._oriAngle(preAngle);
+
             if (o_angle > this._end) {
-                if (!isDrag) return this["_handle" + this._active].angle;
-                var preAngle = this._oriAngle(this["_handle" + this._active].angle);
-                angle = this._start + (preAngle <= this._end - preAngle ? 0 : this._end);
+                if (!isDrag) return preAngle;
+                angle = this._start + (o_preAngle <= this._end - o_preAngle ? 0 : this._end);
+            }
+            else if (isDrag) {
+                var d = this._handleDragDistance;
+                if (isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
             }
             return angle;
         },
