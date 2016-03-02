@@ -49,6 +49,7 @@ To know more about the **Options**, please check the [documentation](http://roun
 		sliderType: "default",
 		circleShape: "full",
 		handleShape: "round",
+		lineCap: "square",
 
 		// events
 		beforeCreate: null,
