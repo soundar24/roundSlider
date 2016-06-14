@@ -1,0 +1,23 @@
+{
+  "name": "roundslider",
+  "version": "1.0.1",
+  "homepage": "https://github.com/soundar24/roundSlider",
+  "authors": [
+    "Soundara Pandian"
+  ],
+  "main" : [
+    "./dist/roundslider.min.js",
+    "./dist/roundslider.min.css"
+  ],
+  "license": "MIT",
+  "description" : "roundSlider - A free jQuery plugin",
+  "dependencies": {
+	"jquery": ">=1.10.2"
+  },
+  "keywords": [
+    "slider",
+    "circular slider",
+    "range slider",
+    "rotation control"
+  ]
+}
