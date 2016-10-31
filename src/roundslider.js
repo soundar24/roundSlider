@@ -42,6 +42,7 @@
             disabled: false,
             keyboardAction: true,
             mouseScrollAction: false,
+            counterClockwise: false,
             lineCap: "square",
             sliderType: "default",
             circleShape: "full",
@@ -60,7 +61,7 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "startAngle"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction"],
+                    "keyboardAction", "mouseScrollAction","counterClockwise"],
                 stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
             };
         },
@@ -556,6 +557,12 @@
 
         // internal methods
         _changeSliderValue: function (value, angle) {
+            if (this.options.counterClockwise){
+                value = value * -1;
+                if (value < 0){
+                    value = 0;
+                }
+            }
             var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle);
             if (!this._rangeSlider && !this._showRange) {
 
@@ -1186,6 +1193,14 @@
 
         // the options value holds the updated defaults value
         this.options = $.extend({}, this.defaults, options);
+        if (this.options.counterClockwise){
+            var max = this.options.max;
+            var min = this.options.min;
+            console.log(min + "  :  " + max);
+            this.options.min = max * -1;
+            this.options.max = min;
+            this.options.scope = this.options.scope * -1;
+        }
         if (this._raise("beforeCreate") !== false) {
             this._init();
             this._raise("create");
