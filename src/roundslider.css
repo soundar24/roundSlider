@@ -102,6 +102,7 @@ div.rs-block { -webkit-border-radius: 100%; border-radius: 100%; }
 }
 .rs-bar
 {
+    display: block;
     position: absolute;
     height: 0;
     z-index: 10;

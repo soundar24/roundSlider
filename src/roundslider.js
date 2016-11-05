@@ -17,7 +17,7 @@
     RoundSlider.prototype = {
 
         pluginName: pluginName,
-        version: "1.3",
+        version: "1.3.1",
 
         // after the control initialization the updated default values
         // are merged into the options
