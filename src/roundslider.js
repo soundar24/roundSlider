@@ -223,7 +223,11 @@
         },
         _focusOut: function (e) {
             if (e.type == "change") {
-                this.options.value = this.input.val().replace("-", ",");
+                var val = this.input.val().replace("-", ",");
+                if (val[0] == ",") {
+                    val = "-" + val.slice(1).replace("-", ",");
+                }
+                this.options.value = val;
                 this._analyzeModelValue();
                 this._validateModelValue();
                 this._setValue();
