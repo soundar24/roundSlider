@@ -1,5 +1,5 @@
 /*!
- * roundSlider v1.3 | (c) 2015-2016, Soundar
+ * roundSlider v1.3.1 | (c) 2015-2016, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
@@ -22,6 +22,9 @@
         // after the control initialization the updated default values
         // are merged into the options
         options: {},
+
+        // holds the current roundSlider element
+        control: null,
 
         // default properties of the plugin. while add a new property,
         // that type should be included in the "_props:" for validation
@@ -56,6 +59,12 @@
             stop: null,
             tooltipFormat: null
         },
+        keys: {     // key codes for
+            UP: 38,     // up arrow
+            DOWN: 40,   // down arrow
+            LEFT: 37,   // left arrow
+            RIGHT: 39   // right arrow
+        },
         _props: function () {
             return {
                 numberType: ["min", "max", "step", "radius", "width", "startAngle"],
@@ -64,7 +73,7 @@
                 stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
             };
         },
-        control: null,
+        
         _init: function () {
             this._isBrowserSupport = this._isBrowserSupported();
             this._isKO = false;
@@ -470,15 +479,15 @@
         },
         _handleKeyDown: function (e) {
             if (this._isReadOnly) return;
-            var key = e.keyCode;
+            var key = e.keyCode, keyCodes = this.keys;
             if (key == 27) this._handles().blur();
             if (!(key >= 35 && key <= 40)) return;
             if (key >= 37 && key <= 40) this._removeAnimation();
             var h = this["_handle" + this._active], val, ang;
 
             e.preventDefault();
-            if (key == 38 || key == 37) val = this._round(this._limitValue(h.value + this.options.step));  // Up || Left Key
-            else if (key == 39 || key == 40) val = this._round(this._limitValue(h.value - this._getMinusStep(h.value))); // Right || Down Key
+            if (key == keyCodes.UP || key == keyCodes.RIGHT) val = this._round(this._limitValue(h.value + this.options.step));  // Up || Right Key
+            else if (key == keyCodes.DOWN || key == keyCodes.LEFT) val = this._round(this._limitValue(h.value - this._getMinusStep(h.value))); // Down || Left Key
             else if (key == 36) val = this._getKeyValue("Home"); // Home Key
             else if (key == 35) val = this._getKeyValue("End"); // End Key
 
