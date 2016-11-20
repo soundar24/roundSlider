@@ -81,7 +81,7 @@
             if (this.control.is("input")) {
                 this._isInputType = true;
                 this._hiddenField = this.control;
-                this.control = this._createElement("div");
+                this.control = this.$createElement("div");
                 this.control.insertAfter(this._hiddenField);
                 this.options.value = this._hiddenField.val() || this.options.value;
                 var that = this;
@@ -107,9 +107,9 @@
             this._refreshCircleShape();
         },
         _render: function () {
-            this.container = this._createElement("div.rs-container");
-            this.innerContainer = this._createElement("div.rs-inner-container");
-            this.block = this._createElement("div.rs-block rs-outer rs-border");
+            this.container = this.$createElement("div.rs-container");
+            this.innerContainer = this.$createElement("div.rs-inner-container");
+            this.block = this.$createElement("div.rs-block rs-outer rs-border");
             this.container.append(this.innerContainer.append(this.block));
             this.control.addClass("rs-control").empty().append(this.container);
 
@@ -123,7 +123,7 @@
                 this._checkIE();
             }
             else {
-                var msg = this._createElement("div.rs-msg");
+                var msg = this.$createElement("div.rs-msg");
                 msg.html(typeof this._throwError === "function" ? this._throwError() : this._throwError);
                 this.control.empty().addClass("rs-error").append(msg);
                 if (this._isInputType) this.control.append(this._dataElement());
@@ -139,7 +139,7 @@
         },
         _createLayers: function () {
             var padd = this.options.width, start = this._start, path;
-            path = this._createElement("div.rs-path rs-transition");
+            path = this.$createElement("div.rs-path rs-transition");
 
             if (this._rangeSlider || this._showRange) {
                 this.block1 = path.clone().addClass("rs-range-color").rsRotate(start);
@@ -151,8 +151,8 @@
             }
             else this.block.append(path.addClass("rs-path-color"));
 
-            this.lastBlock = this._createElement("span.rs-block").css({ "padding": padd });
-            this.innerBlock = this._createElement("div.rs-inner rs-bg-color rs-border");
+            this.lastBlock = this.$createElement("span.rs-block").css({ "padding": padd });
+            this.innerBlock = this.$createElement("div.rs-inner rs-bg-color rs-border");
             this.lastBlock.append(this.innerBlock);
             this.block.append(this.lastBlock);
             this._appendHandle();
@@ -185,7 +185,7 @@
         },
         _appendTooltip: function () {
             if (this.container.children(".rs-tooltip").length !== 0) return;
-            this.tooltip = this._createElement("span.rs-tooltip rs-tooltip-text");
+            this.tooltip = this.$createElement("span.rs-tooltip rs-tooltip-text");
             this.container.append(this.tooltip);
             this._tooltipEditable();
             this._updateTooltip();
@@ -210,7 +210,7 @@
         _editTooltip: function (e) {
             if (!this.tooltip.hasClass("edit") || this._isReadOnly) return;
             var border = parseFloat(this.tooltip.css("border-left-width")) * 2;
-            this.input = this._createElement("input.rs-input rs-tooltip-text").css({
+            this.input = this.$createElement("input.rs-input rs-tooltip-text").css({
                 height: this.tooltip.outerHeight() - border,
                 width: this.tooltip.outerWidth() - border
             });
@@ -301,8 +301,8 @@
             this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
-            var line = this._createElement("span.rs-seperator rs-border"), width = this.options.width, _border = this._border();
-            var lineWrap = this._createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
+            var line = this.$createElement("span.rs-seperator rs-border"), width = this.options.width, _border = this._border();
+            var lineWrap = this.$createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
             this.container.append(lineWrap);
             return lineWrap;
         },
@@ -325,7 +325,7 @@
             this._endLine.rsRotate(this._start + this._end);
         },
         _createHandle: function (index) {
-            var handle = this._createElement("div.rs-handle rs-move"), o = this.options, hs;
+            var handle = this.$createElement("div.rs-handle rs-move"), o = this.options, hs;
             if ((hs = o.handleShape) != "round") handle.addClass("rs-handle-" + hs);
             handle.attr({ "index": index, "tabIndex": "0" });
 
@@ -333,7 +333,7 @@
             var label = id + "handle" + (o.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
-            var bar = this._createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle).rsRotate(this._start);
+            var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle).rsRotate(this._start);
             bar.addClass(o.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
             this.container.append(bar);
             this._refreshHandle();
@@ -346,7 +346,7 @@
             return handle;
         },
         _refreshHandle: function () {
-            var hSize = this.options.handleSize, h, w, isSquare = true, isNumber = this._isNumber;
+            var hSize = this.options.handleSize, h, w, isSquare = true, isNumber = this.$isNumber;
             if (typeof hSize === "string" && isNumber(hSize)) {
                 if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
                     try { hSize = eval(this.options.width + hSize.charAt(0) + Math.abs(parseFloat(hSize))); }
@@ -674,7 +674,7 @@
             }
             else if (isDrag) {
                 var d = this._handleDragDistance;
-                if (this._isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
+                if (this.$isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
             }
             return angle;
         },
@@ -725,7 +725,7 @@
             return angle;
         },
         _appendHiddenField: function () {
-            this._hiddenField = this._hiddenField || this._createElement("input");
+            this._hiddenField = this._hiddenField || this.$createElement("input");
             this._hiddenField.attr({
                 "type": "hidden", "name": this._dataElement()[0].id || ""
             });
@@ -781,18 +781,18 @@
         },
         _validateStartAngle: function () {
             var start = this.options.startAngle;
-            start = (this._isNumber(start) ? parseFloat(start) : 0) % 360;
+            start = (this.$isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
             this.options.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
             var end = this.options.endAngle;
-            if (typeof end === "string" && this._isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
+            if (typeof end === "string" && this.$isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
                 try { end = eval(this.options.startAngle + end.charAt(0) + Math.abs(parseFloat(end))); }
                 catch (e) { console.warn(e); }
             }
-            end = (this._isNumber(end) ? parseFloat(end) : 360) % 360;
+            end = (this.$isNumber(end) ? parseFloat(end) : 360) % 360;
             if (end <= this.options.startAngle) end += 360;
             return end;
         },
@@ -825,7 +825,7 @@
         _checkOverlay: function (cls, angle) {
             var overlay = this.container.children(cls);
             if (overlay.length == 0) {
-                overlay = this._createElement("div" + cls + " rs-transition rs-bg-color");
+                overlay = this.$createElement("div" + cls + " rs-transition rs-bg-color");
                 this.container.append(overlay);
             }
             overlay.rsRotate(this._start + angle);
@@ -835,7 +835,7 @@
             // to check number datatype
             for (i in props.numberType) {
                 prop = props.numberType[i], value = m[prop];
-                if (!this._isNumber(value)) m[prop] = this.defaults[prop];
+                if (!this.$isNumber(value)) m[prop] = this.defaults[prop];
                 else m[prop] = parseFloat(value);
             }
             // to check input string
@@ -883,7 +883,7 @@
         _analyzeModelValue: function () {
             var val = this.options.value,
                 min = this.options.min, max = this.options.max,
-                last, t, isNumber = this._isNumber;
+                last, t, isNumber = this.$isNumber;
             if (val instanceof Array) val = val.toString();
             var parts = (typeof val == "string") ? val.split(",") : [val];
 
@@ -922,11 +922,11 @@
         },
 
         // common core methods
-        _createElement: function (tag) {
+        $createElement: function (tag) {
             var t = tag.split('.');
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
-        _isNumber: function (number) {
+        $isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
         },
@@ -1001,7 +1001,7 @@
         _set: function (property, value) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
-                if (!this._isNumber(value)) return;
+                if (!this.$isNumber(value)) return;
                 value = parseFloat(value);
             }
             else if ($.inArray(property, props.booleanType) != -1) {    // to check boolean datatype
@@ -1111,7 +1111,7 @@
             return this;
         },
         getValue: function (index) {
-            if (this.options.sliderType == "range" && this._isNumber(index)) {
+            if (this.options.sliderType == "range" && this.$isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
@@ -1119,8 +1119,8 @@
             return this._get("value");
         },
         setValue: function (value, index) {
-            if (this._isNumber(value)) {
-                if (this._isNumber(index)) {
+            if (this.$isNumber(value)) {
+                if (this.$isNumber(index)) {
                     if (this.options.sliderType == "range") {
                         var i = parseFloat(index), val = parseFloat(value);
                         if (i == 1) value = val + "," + this._handle2.value;
