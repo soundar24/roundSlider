@@ -948,6 +948,8 @@
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
             args = args || { value: o.value };
+            args["id"] = this.id;
+            args["control"] = this.control;
             args["options"] = o;
             if (fn) {
                 args["type"] = event;
@@ -957,7 +959,7 @@
                     val = val === false ? false : val;
                 }
             }
-            this.control.trigger($.Event ? $.Event(event, args) : event);
+            this.control.trigger($.Event(event, args));
             return val;
         },
         _bind: function (element, _event, handler) {
@@ -1160,6 +1162,7 @@
     // The plugin constructor
     function RoundSlider(control, options) {
         if (control.id) window[control.id] = this;
+        this.id = control.id;
         this.control = $(control);
 
         // the options value holds the updated defaults value
