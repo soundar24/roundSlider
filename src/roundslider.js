@@ -101,6 +101,7 @@
             this._render();
         },
         _initialize: function () {
+            this.browserName = this._getBrowserName();
             if (!this._isBrowserSupport) return;
             this._isReadOnly = false;
             this._checkDataType();
@@ -929,6 +930,20 @@
         $isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
+        },
+        _getBrowserName: function () {
+            var _prefix = "rs-", browserName = "", ua = window.navigator.userAgent;
+            if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
+            else if (!!window.chrome && !!window.chrome.webstore) browserName = "chrome";
+            else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
+            else if (/*@cc_on!@*/false || !!document.documentMode) browserName = "ie";
+            else if (!!window.StyleMedia) browserName = "edge";
+            else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
+            else _prefix = "";
+
+            this.control.addClass(_prefix + browserName);
+
+            return browserName;
         },
         _isBrowserSupported: function () {
             var properties = ["borderRadius", "WebkitBorderRadius", "MozBorderRadius",
