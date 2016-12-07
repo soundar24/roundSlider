@@ -101,7 +101,8 @@
             this._render();
         },
         _initialize: function () {
-            this.browserName = this._getBrowserName();
+            var browserName = this.browserName = this.$browserName();
+            if (browserName) this.control.addClass("rs-" + browserName);
             if (!this._isBrowserSupport) return;
             this._isReadOnly = false;
             this._checkDataType();
@@ -121,7 +122,6 @@
                 this._setValue();
                 this._updateTooltipPos();
                 this._bindControlEvents("_bind");
-                this._checkIE();
             }
             else {
                 var msg = this.$createElement("div.rs-msg");
@@ -931,18 +931,14 @@
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
         },
-        _getBrowserName: function () {
-            var _prefix = "rs-", browserName = "", ua = window.navigator.userAgent;
+        $browserName: function () {
+            var browserName = "", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
-            else if (!!window.chrome && !!window.chrome.webstore) browserName = "chrome";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
             else if (/*@cc_on!@*/false || !!document.documentMode) browserName = "ie";
             else if (!!window.StyleMedia) browserName = "edge";
             else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
-            else _prefix = "";
-
-            this.control.addClass(_prefix + browserName);
-
+            else if ((!!window.chrome && !!window.chrome.webstore) || (ua.indexOf('Chrome') != -1)) browserName = "chrome";
             return browserName;
         },
         _isBrowserSupported: function () {
@@ -954,11 +950,6 @@
         },
         _throwError: function () {
             return "This browser doesn't support the border-radious property.";
-        },
-        _checkIE: function () {
-            var ua = window.navigator.userAgent;
-            if (ua.indexOf('MSIE ') >= 0 || ua.indexOf('Trident/') >= 0)
-                this.control.css({ "-ms-touch-action": "none", "touch-action": "none" });
         },
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
