@@ -1,5 +1,7 @@
 # roundSlider - A free jQuery plugin
 
+[![CDNJS](https://img.shields.io/cdnjs/v/roundSlider.svg)](https://cdnjs.com/libraries/roundSlider)
+
 ### What's this ?
 
 Round slider (also can call as Circular slider, Radial slider) is a jQuery plugin that allows the user to select a value or range of values.
