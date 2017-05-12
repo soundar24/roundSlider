@@ -662,7 +662,7 @@
             var angle = (-deg / (Math.PI / 180));
             if (angle < this._start) angle += 360;
             angle = this._checkAngle(angle, isDrag);
-            return this._processStepByAngle(angle);;
+            return this._processStepByAngle(angle);
         },
         _checkAngle: function (angle, isDrag) {
             var o_angle = this._oriAngle(angle),
@@ -1021,13 +1021,18 @@
             this.options[property] = value;
             switch (property) {
                 case "startAngle":
+                break;
                 case "endAngle":
                     this._validateStartEnd();
                     this._updateSeperator();
                     this._appendOverlay();
+                    break;
                 case "min":
+                break;
                 case "max":
+                break;
                 case "step":
+                break;
                 case "value":
                     this._analyzeModelValue();
                     this._validateModelValue();
@@ -1081,6 +1086,7 @@
                         this.options.startAngle = 0;
                         this.options.endAngle = "+360";
                     }
+                    break;
                 case "sliderType":
                     this._destroyControl();
                     this._onInit();
