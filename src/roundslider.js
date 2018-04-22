@@ -662,7 +662,7 @@
             var angle = (-deg / (Math.PI / 180));
             if (angle < this._start) angle += 360;
             angle = this._checkAngle(angle, isDrag);
-            return this._processStepByAngle(angle);;
+            return this._processStepByAngle(angle);
         },
         _checkAngle: function (angle, isDrag) {
             var o_angle = this._oriAngle(angle),
@@ -983,13 +983,13 @@
         _saveInstanceOnID: function () {
             var id = this.id;
             if (id && typeof window[id] !== "undefined") 
-				window[id] = this;
+                window[id] = this;
         },
         _removeData: function () {
             var control = this._dataElement()[0];
             $.removeData && $.removeData(control, pluginName);
             if (control.id && typeof window[control.id]["_init"] === "function") 
-				delete window[control.id];
+                delete window[control.id];
         },
         _destroyControl: function () {
             if (this._isInputType) this._dataElement().insertAfter(this.control).attr("type", "text");
