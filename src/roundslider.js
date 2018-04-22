@@ -977,10 +977,19 @@
         _getInstance: function () {
             return $.data(this._dataElement()[0], pluginName);
         },
+		_saveInstanceOnElement: function () {
+            $.data(this.control[0], pluginName, this);
+        },
+		_saveInstanceOnID: function () {
+			var id = this.id;
+            if (id && typeof window[id] !== "undefined") 
+				window[id] = this;
+        },
         _removeData: function () {
             var control = this._dataElement()[0];
             $.removeData && $.removeData(control, pluginName);
-            if (control.id) delete window[control.id];
+            if (control.id && typeof window[control.id]["_init"] === "function") 
+				delete window[control.id];
         },
         _destroyControl: function () {
             if (this._isInputType) this._dataElement().insertAfter(this.control).attr("type", "text");
@@ -1167,7 +1176,6 @@
 
     // The plugin constructor
     function RoundSlider(control, options) {
-        if (control.id) window[control.id] = this;
         this.id = control.id;
         this.control = $(control);
 
@@ -1182,7 +1190,9 @@
             var that = this[i], instance = $.data(that, pluginName);
             if (!instance) {
                 var _this = new RoundSlider(that, options);
-                $.data(that, pluginName, _this);
+                _this._saveInstanceOnElement();
+				_this._saveInstanceOnID();
+				
                 if (_this._raise("beforeCreate") !== false) {
                     _this._init();
                     _this._raise("create");
