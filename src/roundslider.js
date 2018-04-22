@@ -101,7 +101,7 @@
             this._render();
         },
         _initialize: function () {
-            var browserName = this.browserName = this.$browserName();
+            var browserName = this.browserName = this.getBrowserName();
             if (browserName) this.control.addClass("rs-" + browserName);
             if (!this._isBrowserSupport) return;
             this._isReadOnly = false;
@@ -347,7 +347,7 @@
             return handle;
         },
         _refreshHandle: function () {
-            var hSize = this.options.handleSize, h, w, isSquare = true, isNumber = this.$isNumber;
+            var hSize = this.options.handleSize, h, w, isSquare = true, isNumber = this.isNumber;
             if (typeof hSize === "string" && isNumber(hSize)) {
                 if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
                     try { hSize = eval(this.options.width + hSize.charAt(0) + Math.abs(parseFloat(hSize))); }
@@ -675,7 +675,7 @@
             }
             else if (isDrag) {
                 var d = this._handleDragDistance;
-                if (this.$isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
+                if (this.isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
             }
             return angle;
         },
@@ -782,18 +782,18 @@
         },
         _validateStartAngle: function () {
             var start = this.options.startAngle;
-            start = (this.$isNumber(start) ? parseFloat(start) : 0) % 360;
+            start = (this.isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
             this.options.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
             var end = this.options.endAngle;
-            if (typeof end === "string" && this.$isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
+            if (typeof end === "string" && this.isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
                 try { end = eval(this.options.startAngle + end.charAt(0) + Math.abs(parseFloat(end))); }
                 catch (e) { console.warn(e); }
             }
-            end = (this.$isNumber(end) ? parseFloat(end) : 360) % 360;
+            end = (this.isNumber(end) ? parseFloat(end) : 360) % 360;
             if (end <= this.options.startAngle) end += 360;
             return end;
         },
@@ -836,7 +836,7 @@
             // to check number datatype
             for (i in props.numberType) {
                 prop = props.numberType[i], value = m[prop];
-                if (!this.$isNumber(value)) m[prop] = this.defaults[prop];
+                if (!this.isNumber(value)) m[prop] = this.defaults[prop];
                 else m[prop] = parseFloat(value);
             }
             // to check input string
@@ -884,7 +884,7 @@
         _analyzeModelValue: function () {
             var val = this.options.value,
                 min = this.options.min, max = this.options.max,
-                last, t, isNumber = this.$isNumber;
+                last, t, isNumber = this.isNumber;
             if (val instanceof Array) val = val.toString();
             var parts = (typeof val == "string") ? val.split(",") : [val];
 
@@ -927,11 +927,11 @@
             var t = tag.split('.');
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
-        $isNumber: function (number) {
+        isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
         },
-        $browserName: function () {
+        getBrowserName: function () {
             var browserName = "", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
@@ -977,11 +977,11 @@
         _getInstance: function () {
             return $.data(this._dataElement()[0], pluginName);
         },
-		_saveInstanceOnElement: function () {
+        _saveInstanceOnElement: function () {
             $.data(this.control[0], pluginName, this);
         },
-		_saveInstanceOnID: function () {
-			var id = this.id;
+        _saveInstanceOnID: function () {
+            var id = this.id;
             if (id && typeof window[id] !== "undefined") 
 				window[id] = this;
         },
@@ -1016,7 +1016,7 @@
         _set: function (property, value) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
-                if (!this.$isNumber(value)) return;
+                if (!this.isNumber(value)) return;
                 value = parseFloat(value);
             }
             else if ($.inArray(property, props.booleanType) != -1) {    // to check boolean datatype
@@ -1126,7 +1126,7 @@
             return this;
         },
         getValue: function (index) {
-            if (this.options.sliderType == "range" && this.$isNumber(index)) {
+            if (this.options.sliderType == "range" && this.isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
@@ -1134,8 +1134,8 @@
             return this._get("value");
         },
         setValue: function (value, index) {
-            if (this.$isNumber(value)) {
-                if (this.$isNumber(index)) {
+            if (this.isNumber(value)) {
+                if (this.isNumber(index)) {
                     if (this.options.sliderType == "range") {
                         var i = parseFloat(index), val = parseFloat(value);
                         if (i == 1) value = val + "," + this._handle2.value;
@@ -1191,7 +1191,7 @@
             if (!instance) {
                 var _this = new RoundSlider(that, options);
                 _this._saveInstanceOnElement();
-				_this._saveInstanceOnID();
+                _this._saveInstanceOnID();
 				
                 if (_this._raise("beforeCreate") !== false) {
                     _this._init();
