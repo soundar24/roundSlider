@@ -935,7 +935,7 @@
             var browserName = "", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
-            else if (/*@cc_on!@*/false || !!document.documentMode) browserName = "ie";
+            else if (ua.indexOf('MSIE ') > 0 || ua.indexOf('Trident/') > 0) browserName = "ie";
             else if (!!window.StyleMedia) browserName = "edge";
             else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
             else if ((!!window.chrome && !!window.chrome.webstore) || (ua.indexOf('Chrome') != -1)) browserName = "chrome";
