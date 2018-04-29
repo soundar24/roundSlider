@@ -684,17 +684,26 @@
             return this._processStepByValue(value);
         },
         _processStepByValue: function (value) {
-            var step = this.options.step, remain, currVal, nextVal, preVal, val, ang;
-            remain = (value - this.options.min) % step;
+            var o = this.options, min = o.min, max = o.max, step = o.step, isMinHigher = (min > max);
+            var remain, currVal, nextVal, preVal, newVal, ang;
+            
+            step = (isMinHigher ? -step : step);
+            remain = (value - min) % step;
+
             currVal = value - remain;
             nextVal = this._limitValue(currVal + step);
             preVal = this._limitValue(currVal - step);
 
-            if (value >= currVal) val = (value - currVal < nextVal - value) ? currVal : nextVal;
-            else val = (currVal - value > value - preVal) ? currVal : preVal;
-
-            val = this._round(val), ang = this._valueToAngle(val);
-            return { value: val, angle: ang };
+            if(!isMinHigher) {
+                if (value >= currVal) newVal = (value - currVal < nextVal - value) ? currVal : nextVal;
+                else newVal = (currVal - value > value - preVal) ? currVal : preVal;
+            }
+            else {
+                if (value <= currVal) newVal = (currVal - value < value - nextVal) ? currVal : nextVal;
+                else newVal = (value - currVal > preVal - value) ? currVal : preVal;
+            }
+            newVal = this._round(newVal), ang = this._valueToAngle(newVal);
+            return { value: newVal, angle: ang };
         },
         _round: function (val) {
             var s = this.options.step.toString().split(".");
@@ -711,8 +720,9 @@
             return angle;
         },
         _limitValue: function (value) {
-            if (value < this.options.min) value = this.options.min;
-            if (value > this.options.max) value = this.options.max;
+            var o = this.options, min = o.min, max = o.max, isMinHigher = (min > max);
+            if ((!isMinHigher && value < min) || (isMinHigher && value > min)) value = min;
+            if ((!isMinHigher && value > max) || (isMinHigher && value < max)) value = max;
             return value;
         },
         _angleToValue: function (angle) {
