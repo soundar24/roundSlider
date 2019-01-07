@@ -393,6 +393,7 @@
             var preValue = this["_pre" + event], currentValue = this.options.value;
             if (preValue !== currentValue) {
                 this["_pre" + event] = currentValue;
+                if (event == "change") this._updatePre();
                 this._updateTooltip();
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
                 return this._raise(event, { value: currentValue, preValue: preValue, "handle": this._handleArgs() });
@@ -504,10 +505,11 @@
 
             ang = this._valueToAngle(val);
             this._changeSliderValue(val, ang);
-            this._raiseEvent("change");
+            this._raiseEvent("drag");
         },
         _handleKeyUp: function (e) {
             this._addAnimation();
+            this._raiseEvent("change");
         },
         _getMinusStep: function (val) {
             var o = this.options, min = o.min, max = o.max, step = o.step;
