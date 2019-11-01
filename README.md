@@ -72,6 +72,10 @@ To know more about the **Options**, please check the [documentation](http://roun
 - [Customizations](http://roundsliderui.com/demos.html#customizations "roundSlider - Customizations")
 - [Different Theming](http://roundsliderui.com/demos.html#different-theming-and-appearances "roundSlider - Different theming and appearances")
 
+### Test environment
+
+[![roundSlider - test environment](/images/Browserstack-logo.png)](https://www.browserstack.com/)
+
 ### Licence
 
 roundSlider is licensed under the terms of the [MIT license](http://roundsliderui.com/licence.html "roundSlider - MIT licence").
