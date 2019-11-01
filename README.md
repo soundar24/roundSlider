@@ -2,8 +2,6 @@
 
 [![CDNJS](https://img.shields.io/cdnjs/v/roundSlider.svg)](https://cdnjs.com/libraries/roundSlider)
 
-[![Waffle.io - Columns and their card count](https://badge.waffle.io/soundar24/roundSlider.svg?columns=all)](https://waffle.io/soundar24/roundSlider)
-
 ### What's this ?
 
 Round slider (also can call as Circular slider, Radial slider) is a jQuery plugin that allows the user to select a value or range of values.
