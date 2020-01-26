@@ -45,10 +45,17 @@
             disabled: false,
             keyboardAction: true,
             mouseScrollAction: false,
-            lineCap: "square",
+            lineCap: "butt",
             sliderType: "default",
             circleShape: "full",
             handleShape: "round",
+
+            // SVG related properties
+            svgMode: false,
+            borderWidth: 1,
+            borderColor: null,
+            pathColor: null,
+            rangeColor: null,
 
             // events
             beforeCreate: null,
@@ -67,7 +74,7 @@
         },
         _props: function () {
             return {
-                numberType: ["min", "max", "step", "radius", "width", "startAngle"],
+                numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
                     "keyboardAction", "mouseScrollAction"],
                 stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
@@ -75,6 +82,16 @@
         },
         
         _init: function () {
+            if (this.options.svgMode) {
+                var EMPTY_FUNCTION = function () {}; 
+                this._appendSeperator = EMPTY_FUNCTION;
+                this._refreshSeperator = EMPTY_FUNCTION;
+                this._updateSeperator = EMPTY_FUNCTION;
+                this._appendOverlay = EMPTY_FUNCTION;
+                this._checkOverlay = EMPTY_FUNCTION;
+                this._updateWidth = EMPTY_FUNCTION;
+            }
+
             this._isBrowserSupport = this._isBrowserSupported();
             this._isKO = false;
             this._isAngular = false;
@@ -111,13 +128,15 @@
         _render: function () {
             this.container = this.$createElement("div.rs-container");
             this.innerContainer = this.$createElement("div.rs-inner-container");
-            this.block = this.$createElement("div.rs-block rs-outer rs-border");
-            this.container.append(this.innerContainer.append(this.block));
-            this.control.addClass("rs-control").empty().append(this.container);
+            this.container.append(this.innerContainer);
+            var $rootCSS = "rs-control " + (this.options.svgMode ? "rs-svg-mode" : "rs-classic-mode");
+            this.control.addClass($rootCSS).empty().append(this.container);
 
-            this._setRadius();
             if (this._isBrowserSupport) {
                 this._createLayers();
+                this._createOtherLayers();
+                this._setContainerClass();
+                this._setRadius();
                 this._setProperties();
                 this._setValue();
                 this._updateTooltipPos();
@@ -139,6 +158,17 @@
             this._validateModelValue();
         },
         _createLayers: function () {
+            if(this.options.svgMode) {
+                this._createSVGElements();
+                this._setSVGAttributes();
+                this._setSVGStyles();
+                this._moveSliderRange(true);
+                return;
+            }
+
+            this.block = this.$createElement("div.rs-block rs-outer rs-border");
+            this.innerContainer.append(this.block);
+
             var padd = this.options.width, start = this._start, path;
             path = this.$createElement("div.rs-path rs-transition");
 
@@ -156,8 +186,11 @@
             this.innerBlock = this.$createElement("div.rs-inner rs-bg-color rs-border");
             this.lastBlock.append(this.innerBlock);
             this.block.append(this.lastBlock);
+        },
+        _createOtherLayers: function () {
             this._appendHandle();
-            this._appendOverlay();
+            this._appendSeperator();    // non SVG mode only
+            this._appendOverlay();      // non SVG mode only
             this._appendHiddenField();
         },
         _setProperties: function () {
@@ -265,40 +298,83 @@
         _removeAnimation: function () {
             this.control.removeClass("rs-animation");
         },
+        _setContainerClass: function () {
+            var circleShape = this.options.circleShape;
+            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
+                this.container.addClass("full " + circleShape);
+            }
+            else {
+                this.container.addClass(circleShape.split("-").join(" "));
+            }
+        },
         _setRadius: function () {
-            var r = this.options.radius, d = r * 2;
-            var circleShape = this.options.circleShape, height = d, width = d;
-            this.container.removeClass().addClass("rs-container");
+            var o = this.options, r = o.radius, d = r * 2, circleShape = o.circleShape;
+            var extraSize = 0, actualHeight, actualWidth;
+            var height = actualHeight = d, width = actualWidth = d;
+
+            // whenever the radius changes, before update the container size
+            // check for the lineCap also, since that will make some additional size
+            // also, based on that need to align the handle bars
+            var isFullCircle = (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0);
+            if (o.svgMode && !isFullCircle) {
+                var handleBars = this._handleBars();
+                if (o.lineCap != "none") {
+                    extraSize = (o.lineCap === "butt") ? (o.borderWidth / 2) : ((o.width / 2) + o.borderWidth);
+                    if (circleShape.indexOf("bottom") != -1) {
+                        handleBars.css("margin-top", extraSize + 'px');
+                    }
+                    if (circleShape.indexOf("right") != -1) {
+                        handleBars.css("margin-right", -extraSize + 'px');
+                    }
+                }
+                else {
+                    // when lineCap none, then remove the styles that was set previously for the other lineCap props
+                    $.each(handleBars, function(i, bar) {
+                        bar.style.removeProperty("margin-top");
+                        bar.style.removeProperty("margin-right");
+                    });
+                }
+            }
 
             if (circleShape.indexOf("half") === 0) {
                 switch (circleShape) {
                     case "half-top":
                     case "half-bottom":
-                        height = r; width = d; break;
+                        height = r; actualHeight = r + extraSize;
+                        break;
                     case "half-left":
                     case "half-right":
-                        height = d; width = r; break;
+                        width = r; actualWidth = r + extraSize;
+                        break;
                 }
-                this.container.addClass(circleShape.replace("half-", "") + " half");
             }
             else if (circleShape.indexOf("quarter") === 0) {
                 height = width = r;
-                var s = circleShape.split("-");
-                this.container.addClass(s[0] + " " + s[1] + " " + s[2]);
+                actualHeight = actualWidth = r + extraSize;
             }
-            else this.container.addClass("full " + circleShape);
 
-            var style = { "height": height, "width": width };
-            this.control.css(style);
-            this.container.css(style);
+            this.container.css({ "height": height, "width": width });
+            this.control.css({ "height": actualHeight, "width": actualWidth });
+
+            // when needed, then only we can set the styles through script, otherwise CSS styles applicable
+            if (extraSize !== 0) this.innerContainer.css({ "height": actualHeight, "width": actualWidth });
+            else this.innerContainer.removeAttr("style");
+
+            if (o.svgMode) {
+                this.svgContainer.height(d).width(d);
+                this.svgContainer.children("svg").height(d).width(d);
+            }
         },
         _border: function (seperator) {
             if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
+            if (this.options.svgMode) return this.options.borderWidth * 2;
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
         _appendHandle: function () {
             if (this._rangeSlider || !this._showRange) this._createHandle(1);
             if (this._rangeSlider || this._showRange) this._createHandle(2);
+        },
+        _appendSeperator: function () {
             this._startLine = this._addSeperator(this._start, "rs-start");
             this._endLine = this._addSeperator(this._start + this._end, "rs-end");
             this._refreshSeperator();
@@ -368,12 +444,15 @@
             var min = this.options.min;
             return { angle: this._valueToAngle(min), value: min };
         },
+        _handleBars: function () {
+            return this.container.children("div.rs-bar");
+        },
         _handles: function () {
-            return this.container.children("div.rs-bar").find(".rs-handle");
+            return this._handleBars().find(".rs-handle");
         },
         _activeHandleBar: function (index) {
             index = (index != undefined) ? index : this._active;
-            return $(this.container.children("div.rs-bar")[index - 1]);
+            return $(this._handleBars()[index - 1]);
         },
         _handleArgs: function (index) {
             index = (index != undefined) ? index : this._active;
@@ -411,7 +490,8 @@
             else {
                 var point = this._getXY(e), center = this._getCenterPoint();
                 var distance = this._getDistance(point, center);
-                var outerDistance = this.block.outerWidth() / 2;
+                var block = this.block || this.svgContainer;
+                var outerDistance = block.outerWidth() / 2;
                 var innerDistance = outerDistance - (this.options.width + this._border());
 
                 if (distance >= innerDistance && distance <= outerDistance) {
@@ -596,6 +676,12 @@
                 this.bar.rsRotate(lAngle);
                 this._updateARIA(value);
 
+                if (this.options.svgMode) {
+                    this._moveSliderRange();
+                    return;
+                }
+
+                // classic DIV handling
                 var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
                 if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
                 this.block2.css("opacity", o2);
@@ -605,6 +691,124 @@
                 (this._active == 1 ? this.block1 : this.block3).rsRotate(lAngle);
             }
         },
+
+        // SVG related functionalities
+        _createSVGElements: function () {
+            var svgEle = this.$createSVG("svg");
+            var PATH = "path.rs-transition ";
+            var pathAttr = { fill: "transparent" };
+
+            this.$path = this.$createSVG(PATH + "rs-path", pathAttr);
+            this.$range = this._showRange ? this.$createSVG(PATH + "rs-range", pathAttr) : null;
+            this.$border = this.$createSVG(PATH + "rs-border", pathAttr);
+            this.$append(svgEle, [this.$path, this.$range, this.$border]);
+
+            this.svgContainer = this.$createElement("div.rs-svg-container").append(svgEle);
+            this.innerContainer.append(this.svgContainer);
+        },
+        _setSVGAttributes: function () {
+            var o = this.options, radius = o.radius, 
+                border = o.borderWidth, width = o.width,
+                lineCap = o.lineCap;
+            var outerRadius = radius - (border / 2),
+                innerRadius = outerRadius - width - border;
+            var startAngle = this._start,
+                totalAngle = this._end,
+                endAngle = startAngle + totalAngle;
+
+            // draw the path for border element
+            var border_d = this.$drawPath(radius, outerRadius, startAngle, endAngle, innerRadius, lineCap);
+            this.$setAttribute(this.$border, {
+                "d": border_d
+            });
+            // and set the border width
+            $(this.$border).css("stroke-width", border);
+
+            var pathRadius = radius - border - (width / 2);
+            this.svgPathLength = this.$getArcLength(pathRadius, totalAngle);
+            var d = this.$drawPath(radius, pathRadius, startAngle, endAngle);
+            var attr = { "d": d, "stroke-width": width, "stroke-linecap": lineCap };
+
+            // draw the path for slider path element
+            this.$setAttribute(this.$path, attr);
+
+            if (this._showRange) {
+                // draw the path for slider range element
+                this.$setAttribute(this.$range, attr);
+
+                // there was a small bug when lineCap was round/square, this will solve that
+                if (lineCap == "round" || lineCap == "square") this.$range.setAttribute("stroke-dashoffset", "0.01");
+                else this.$range.removeAttribute("stroke-dashoffset");
+            }
+        },
+        _setSVGStyles: function () {
+            var o = this.options,
+                borderColor = o.borderColor,
+                pathColor = o.pathColor,
+                rangeColor = o.rangeColor;
+
+            if (borderColor) {
+                $(this.$border).css("stroke", borderColor);
+            }
+
+            if (pathColor) {
+                $(this.$path).css("stroke", pathColor);
+            }
+
+            if (this._showRange && rangeColor) {
+                $(this.$range).css("stroke", rangeColor);
+            }
+        },
+        _moveSliderRange: function (isInit) {
+            if (!this._showRange) return;
+
+            var startAngle = this._start,
+                totalAngle = this._end;
+            var handle1Angle = this._handle1.angle - startAngle,
+                handle2Angle = this._handle2.angle - startAngle;
+            if (isInit) handle1Angle = handle2Angle = 0;
+            var dashArray = [];
+
+            if (handle1Angle <= handle2Angle) {
+                // starting the dashArray from 0 means normal range, otherwise it's invert range
+                // so when handle1 value is smaller then it's a normal range selection only
+                dashArray.push(0);
+            }
+            else {
+                // when handle1 value is larger then it's a invert range selection, also swap the values
+                var temp = handle1Angle;
+                handle1Angle = handle2Angle;
+                handle2Angle = temp;
+            }
+
+            var handle1Distance = (handle1Angle / totalAngle) * this.svgPathLength;
+            dashArray.push(handle1Distance);
+
+            var handle2Distance = ((handle2Angle - handle1Angle) / totalAngle) * this.svgPathLength;
+            dashArray.push(handle2Distance, this.svgPathLength);
+
+            this.$range.style.strokeDasharray = dashArray.join(" ");
+        },
+        _isPropsRelatedToSVG: function (property) {
+            var svgRelatedProps = ["radius", "borderWidth", "width", "lineCap", "startAngle", "endAngle"];
+            return this._hasProperty(property, svgRelatedProps);
+        },
+        _isPropsRelatedToSVGStyles: function (property) {
+            var svgStylesRelatedProps = ["borderColor", "pathColor", "rangeColor"];
+            return this._hasProperty(property, svgStylesRelatedProps);
+        },
+        _hasProperty: function (property, list) {
+            if (typeof property == "string") {
+                return (list.indexOf(property) !== -1);
+            }
+            else {
+                var allProperties = Object.keys(property);
+                return allProperties.some(function(prop) {
+                    return (list.indexOf(prop) !== -1);
+                });
+            }
+        },
+
         // WAI-ARIA support
         _updateARIA: function (value) {
             var o = this.options, min = o.min, max = o.max;
@@ -660,10 +864,11 @@
             return { x: e.pageX, y: e.pageY };
         },
         _getCenterPoint: function () {
-            var offset = this.block.offset(), center;
+            var block = this.block || this.svgContainer;
+            var offset = block.offset(), center;
             center = {
-                x: offset.left + (this.block.outerWidth() / 2),
-                y: offset.top + (this.block.outerHeight() / 2)
+                x: offset.left + (block.outerWidth() / 2),
+                y: offset.top + (block.outerHeight() / 2)
             };
             return center;
         },
@@ -771,11 +976,12 @@
             var circleShape = this.options.circleShape, pos;
             var tooltipHeight = this.tooltip.outerHeight(), tooltipWidth = this.tooltip.outerWidth();
 
-            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0)
+            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
                 return {
                     "margin-top": -tooltipHeight / 2,
                     "margin-left": -tooltipWidth / 2
                 };
+            }
             else if (circleShape.indexOf("half") != -1) {
                 switch (circleShape) {
                     case "half-top":
@@ -954,6 +1160,34 @@
             var t = tag.split('.');
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
+        $createSVG: function (tag, attr) {
+            var t = tag.split('.');
+            var svgEle = document.createElementNS("http://www.w3.org/2000/svg", t[0]);
+            if (t[1]) {
+                svgEle.setAttribute("class", t[1]);
+            }
+            if (attr) {
+                this.$setAttribute(svgEle, attr);
+            }
+            return svgEle;
+        },
+        $setAttribute: function (ele, attr) {
+            for (var key in attr) {
+                var val = attr[key];
+                if (key === "class") {
+                    var prev = ele.getAttribute('class');
+                    if (prev) val += " " + prev;
+                }
+                ele.setAttribute(key, val);
+            }
+            return ele;
+        },
+        $append: function (parent, children) {
+            children.forEach(function(element) {
+                element && parent.appendChild(element);
+            });
+            return parent;
+        },
         isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
@@ -1028,7 +1262,6 @@
         // methods to dynamic options updation (through option)
         _updateWidth: function () {
             this.lastBlock.css("padding", this.options.width);
-            this._refreshHandle();
         },
         _readOnly: function (bool) {
             this._isReadOnly = bool;
@@ -1059,8 +1292,8 @@
                 case "startAngle":
                 case "endAngle":
                     this._validateStartEnd();
-                    this._updateSeperator();
-                    this._appendOverlay();
+                    this._updateSeperator();    // non SVG mode only
+                    this._appendOverlay();      // non SVG mode only
                 case "min":
                 case "max":
                 case "step":
@@ -1078,10 +1311,16 @@
                     break;
                 case "width":
                     this._removeAnimation();
-                    this._updateWidth();
+                    this._updateWidth();        // non SVG mode only
+                    this._setRadius();
+                    this._refreshHandle();
                     this._updateTooltipPos();
                     this._addAnimation();
-                    this._refreshSeperator();
+                    this._refreshSeperator();   // non SVG mode only
+                    break;
+                case "borderWidth":
+                    this._setRadius();
+                    this._refreshHandle();
                     break;
                 case "handleSize":
                     this._refreshHandle();
@@ -1109,7 +1348,8 @@
                     this._bindScrollEvents(this.options.mouseScrollAction ? "_bind" : "_unbind");
                     break;
                 case "lineCap":
-                    this._refreshSeperator();
+                    this._setRadius();
+                    this._refreshSeperator();   // non SVG mode only
                     break;
                 case "circleShape":
                     this._refreshCircleShape();
@@ -1120,6 +1360,11 @@
                 case "sliderType":
                     this._destroyControl();
                     this._onInit();
+                    break;
+                case "svgMode":
+                    var $control = this.control, $options = this.options;
+                    this.destroy();
+                    $control[pluginName]($options);
                     break;
             }
             return this;
@@ -1150,6 +1395,19 @@
                 if (value === undefined) return this._get(property);
                 this._set(property, value);
             }
+
+            // whenever the properties set dynamically, check for SVG mode. also check
+            // any of the property was related to SVG. If yes, then redraw the SVG path
+            if (this.options.svgMode && property) {
+                if (this._isPropsRelatedToSVG(property)) {
+                    this._setSVGAttributes();
+                    this._moveSliderRange();
+                }
+                if (this._isPropsRelatedToSVGStyles(property)) {
+                    this._setSVGStyles();
+                }
+            }
+
             return this;
         },
         getValue: function (index) {
@@ -1243,6 +1501,91 @@
             }
         }
         return this;
+    }
+
+    // ### SVG related logic
+    RoundSlider.prototype.$polarToCartesian = function (centerXY, radius, angleInDegrees) {
+        var angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+    
+        return [
+            centerXY + (radius * Math.cos(angleInRadians)),
+            centerXY + (radius * Math.sin(angleInRadians))
+        ].join(" ");
+    }
+
+    RoundSlider.prototype.$drawArc = function (centerXY, radius, startAngle, endAngle, isOuter) {
+        var isCircle = (endAngle - startAngle == 360);
+        var largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
+        var isClockwise = true;
+        var outerDirection = isClockwise ? 1 : 0;
+        var innerDirection = isClockwise ? 0 : 1;
+        var direction = isOuter ? outerDirection : innerDirection;
+        var _endAngle = isOuter ? endAngle : startAngle;
+    
+        var path = [];
+    
+        // if it is a perfect circle then draw two half circles, otherwise draw arc
+        if (isCircle) {
+            var midAngle = (startAngle + endAngle) / 2;
+            var midPoint = this.$polarToCartesian(centerXY, radius, midAngle);
+            var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
+            path.push(
+                "A", 1, 1, 0, 0, direction, midPoint,
+                "A", 1, 1, 0, 0, direction, endPoint
+            );
+        }
+        else {
+            var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
+            path.push(
+                "A", radius, radius, 0, largeArcFlag, direction, endPoint
+            );
+        }
+    
+        return path.join(" ");
+    }
+
+    RoundSlider.prototype.$drawPath = function (centerXY, outerRadius, startAngle, endAngle, innerRadius, lineCap){
+        var outerStart = this.$polarToCartesian(centerXY, outerRadius, startAngle);
+        var outerArc = this.$drawArc(centerXY, outerRadius, startAngle, endAngle, true);          // draw outer circle
+    
+        var d = [
+            "M " + outerStart,
+            outerArc
+        ];
+    
+        if (innerRadius) {
+            var innerEnd = this.$polarToCartesian(centerXY, innerRadius, endAngle);
+            var innerArc = this.$drawArc(centerXY, innerRadius, startAngle, endAngle, false);     // draw inner circle
+            
+            if (lineCap == "none") {
+                d.push(
+                    "M " + innerEnd,
+                    innerArc
+                );
+            }
+            else if (lineCap == "round") {
+                d.push(
+                    "A 1, 1, 0, 0, 1, " + innerEnd,
+                    innerArc,
+                    "A 1, 1, 0, 0, 1, " + outerStart
+                );
+            }
+            else if (lineCap == "butt" || lineCap == "square") {
+                d.push(
+                    "L " + innerEnd,
+                    innerArc,
+                    "L " + outerStart,
+                    "Z"
+                );
+            }
+        }
+        return d.join(" ");
+    }
+
+    RoundSlider.prototype.$getArcLength = function (radius, degree = 360) {
+        // when degree not provided we can consider that arc as a complete circle
+        // circle's arc length formula => 2πR(Θ/360)
+        return 2 * Math.PI * radius * (degree / 360);
     }
 
     $.fn[pluginName].prototype = RoundSlider.prototype;

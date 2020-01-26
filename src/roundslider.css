@@ -57,13 +57,6 @@
     border: 1px dotted;
     text-align: center;
 }
-.rs-readonly {
-    height: 100%;
-    width: 100%;
-    top: 0;
-    position: absolute;
-    z-index: 100;
-}
 .rs-disabled {
     opacity: 0.35;
 }
@@ -74,12 +67,14 @@
     position: relative;
     overflow: hidden;
 }
-.quarter div.rs-block { height: 200%; width: 200%; }
-.half.top div.rs-block, .half.bottom div.rs-block { height: 200%; width: 100%; }
-.half.left div.rs-block, .half.right div.rs-block { height: 100%; width: 200%; }
-.bottom > .rs-inner-container > .rs-block { top: auto; bottom: 0; }
-.right .rs-inner-container > .rs-block { right: 0; }
-div.rs-block { -webkit-border-radius: 1000px; border-radius: 1000px; }
+.rs-control .quarter div.rs-block { height: 200%; width: 200%; }
+.rs-control .half.top div.rs-block,
+.rs-control .half.bottom div.rs-block { height: 200%; width: 100%; }
+.rs-control .half.left div.rs-block,
+.rs-control .half.right div.rs-block { height: 100%; width: 200%; }
+.rs-control .bottom .rs-block { top: auto; bottom: 0; }
+.rs-control .right .rs-block { right: 0; }
+.rs-block.rs-outer { -webkit-border-radius: 1000px; border-radius: 1000px; }
 .rs-block
 {
     height: 100%;
@@ -113,6 +108,7 @@ div.rs-block { -webkit-border-radius: 1000px; border-radius: 1000px; }
 {
     display: block;
     position: absolute;
+    bottom: 0;
     height: 0;
     z-index: 10;
 }
@@ -140,7 +136,7 @@ div.rs-block { -webkit-border-radius: 1000px; border-radius: 1000px; }
 
 .rs-handle.rs-move { cursor: move; }
 .rs-readonly .rs-handle.rs-move { cursor: default; }
-.rs-path { display: block; height: 100%; width: 100%; }
+.rs-classic-mode .rs-path { display: block; height: 100%; width: 100%; }
 .rs-split .rs-path
 {
     -webkit-border-radius: 1000px 1000px 0 0;
@@ -150,6 +146,20 @@ div.rs-block { -webkit-border-radius: 1000px; border-radius: 1000px; }
     position: absolute;
     top: 0;
     z-index: 2;
+}
+
+/*** SVG mode related styles ***/
+.rs-control .rs-svg-container {
+    display: block;
+    position: absolute;
+    top: 0;
+}
+.rs-control .bottom .rs-svg-container {
+    top: auto;
+    bottom: 0;
+}
+.rs-control .right .rs-svg-container {
+    right: 0;
 }
 
 /*** tooltip styles ***/
@@ -195,3 +205,21 @@ div.rs-block { -webkit-border-radius: 1000px; border-radius: 1000px; }
 .rs-handle { background-color: #838383; }
 .rs-handle-dot { background-color: #FFFFFF; }
 .rs-handle-dot:after { background-color: #838383; }
+
+/*** SVG mode - theming - colors ***/
+.rs-svg-mode .rs-path {
+    /*  this will change the slider's path color
+        this can be also done via the property -> 'pathColor'  */
+    stroke: #FFFFFF;
+}
+.rs-svg-mode .rs-range {
+    /*  this will change the slider's range color
+        this can be also done via the property -> 'rangeColor'  */
+    stroke: #54BBE0;
+}
+.rs-svg-mode .rs-border {
+    /*  this will change the slider's border color
+        this can be also done via the property -> 'borderColor'
+        the border width can be changed via the property -> 'borderWidth'  */
+    stroke: #AAAAAA;
+}
