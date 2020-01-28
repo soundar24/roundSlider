@@ -747,6 +747,9 @@
                 pathColor = o.pathColor,
                 rangeColor = o.rangeColor;
 
+            // when changing the colors, at that time animation was not needed
+            this._removeAnimation();
+
             if (borderColor) {
                 $(this.$border).css("stroke", borderColor);
             }
@@ -758,6 +761,8 @@
             if (this._showRange && rangeColor) {
                 $(this.$range).css("stroke", rangeColor);
             }
+
+            this._addAnimation();
         },
         _moveSliderRange: function (isInit) {
             if (!this._showRange) return;
