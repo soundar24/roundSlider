@@ -1,5 +1,5 @@
 /*!
- * roundSlider v1.3.3 | (c) 2015-2019, Soundar
+ * roundSlider v1.4.0 | (c) 2015-2020, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
@@ -17,7 +17,7 @@
     RoundSlider.prototype = {
 
         pluginName: pluginName,
-        version: "1.3.3",
+        version: "1.4.0",
 
         // after the control initialization the updated default values
         // are merged into the options
@@ -76,7 +76,7 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction"],
+                    "keyboardAction", "mouseScrollAction", "svgMode"],
                 stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
             };
         },
@@ -747,9 +747,6 @@
                 pathColor = o.pathColor,
                 rangeColor = o.rangeColor;
 
-            // when changing the colors, at that time animation was not needed
-            this._removeAnimation();
-
             if (borderColor) {
                 $(this.$border).css("stroke", borderColor);
             }
@@ -761,8 +758,6 @@
             if (this._showRange && rangeColor) {
                 $(this.$range).css("stroke", rangeColor);
             }
-
-            this._addAnimation();
         },
         _moveSliderRange: function (isInit) {
             if (!this._showRange) return;
