@@ -1,6 +1,6 @@
 # roundSlider - A free jQuery plugin
 
-[![CDNJS](https://img.shields.io/cdnjs/v/roundSlider.svg)](https://cdnjs.com/libraries/roundSlider)
+[![npm](https://img.shields.io/npm/v/round-slider)](https://www.npmjs.com/package/round-slider) [![GitHub](https://img.shields.io/github/license/soundar24/roundSlider)](https://github.com/soundar24/roundSlider/blob/master/LICENSE)
 
 ### What's this ?
 
