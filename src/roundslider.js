@@ -495,15 +495,17 @@
                 var innerDistance = outerDistance - (this.options.width + this._border());
 
                 if (distance >= innerDistance && distance <= outerDistance) {
-                    e.preventDefault();
                     var handle = this.control.find(".rs-handle.rs-focus"), angle, value;
-                    this.control.attr("tabindex", "0").focus().removeAttr("tabindex");
+                    if (handle.length !== 0) {
+                        // here, some handle was in already focused state, and user clicked on the slider path
+                        // so this will make the handle unfocus, to avoid that we can prevent this event
+                        e.preventDefault();
+                    }
                     
                     var d = this._getAngleValue(point, center);
                     angle = d.angle, value = d.value;
 
                     if (this._rangeSlider) {
-                        handle = this.control.find(".rs-handle.rs-focus");
                         if (handle.length == 1) this._active = parseFloat(handle.attr("index"));
                         else this._active = (this._handle2.value - value) < (value - this._handle1.value) ? 2 : 1;
                         this.bar = this._activeHandleBar();
