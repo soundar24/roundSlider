@@ -1117,10 +1117,10 @@
         },
         _analyzeModelValue: function () {
             var o = this.options, val = o.value, min = o.min, max = o.max,
-                lastValue, newValue, isNumber = this.isNumber,
-                valueIsString = (typeof val == "string");
-
+                lastValue, newValue, isNumber = this.isNumber;
             if (val instanceof Array) val = val.toString();
+            var valueIsString = (typeof val == "string");
+
             var parts = valueIsString ? val.split(",") : [val];
 
             if (this._rangeSlider) {
