@@ -1275,7 +1275,7 @@
         _get: function (property) {
             return this.options[property];
         },
-        _set: function (property, value) {
+        _set: function (property, value, forceSet) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
                 if (!this.isNumber(value)) return;
@@ -1288,7 +1288,7 @@
                 value = value.toLowerCase();
             }
 
-            if (this.options[property] == value) return;
+            if (!forceSet && this.options[property] == value) return;
             this.options[property] = value;
             switch (property) {
                 case "startAngle":
@@ -1385,9 +1385,12 @@
                         this.options.max = property["max"];
                         delete property["max"];
                     }
-                    if (property["value"] == undefined) {
-                        this._set("value", this.options.value);
+                    var val = this.options.value;
+                    if (property["value"] !== undefined) {
+                        val = property["value"]
+                        delete property["value"];
                     }
+                    this._set("value", val, true);
                 }
                 for (var prop in property) {
                     this._set(prop, property[prop]);
