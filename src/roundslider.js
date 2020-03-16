@@ -1138,12 +1138,20 @@
             this.options.value = newValue;
         },
         _validateModelValue: function () {
-            var val = this.options.value;
+            var o = this.options, val = o.value;
             if (this._rangeSlider) {
                 var parts = val.split(","), val1 = parseFloat(parts[0]), val2 = parseFloat(parts[1]);
                 val1 = this._limitValue(val1);
                 val2 = this._limitValue(val2);
-                if (!this._invertRange) if (val1 > val2) val2 = val1;
+                if (!this._invertRange) {
+                    var min = o.min, max = o.max;
+                    var isMinHigher = (min > max);
+                    if (isMinHigher) {
+                        if (val1 < val2) val1 = val2;
+                    } else {
+                        if (val1 > val2) val2 = val1;
+                    }
+                }
 
                 this._handle1 = this._processStepByValue(val1);
                 this._handle2 = this._processStepByValue(val2);
