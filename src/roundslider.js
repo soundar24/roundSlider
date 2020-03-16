@@ -506,8 +506,15 @@
                     angle = d.angle, value = d.value;
 
                     if (this._rangeSlider) {
-                        if (handle.length == 1) this._active = parseFloat(handle.attr("index"));
-                        else this._active = (this._handle2.value - value) < (value - this._handle1.value) ? 2 : 1;
+                        if (handle.length == 1) {
+                            var active = parseFloat(handle.attr("index"));
+                            if (!this._invertRange) {
+                                if (active == 1 && angle > this._handle2.angle) active = 2;
+                                else if (active == 2 && angle < this._handle1.angle) active = 1;
+                            }
+                            this._active = active;
+                        }
+                        else this._active = (this._handle2.angle - angle) < (angle - this._handle1.angle) ? 2 : 1;
                         this.bar = this._activeHandleBar();
                     }
 
