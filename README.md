@@ -51,7 +51,19 @@ To know more about the **Options**, please check the [documentation](http://roun
 		sliderType: "default",
 		circleShape: "full",
 		handleShape: "round",
-		lineCap: "square",
+		lineCap: "butt",
+
+		// the 'startValue' property decides at which point the slider should start.
+		// otherwise, by default the slider starts with min value. this is mainly used
+		// for min-range slider, where you can customize the min-range start position.
+		startValue: null,
+
+		// SVG related properties
+		svgMode: false,
+		borderWidth: 1,
+		borderColor: null,
+		pathColor: null,
+		rangeColor: null,
 
 		// events
 		beforeCreate: null,
