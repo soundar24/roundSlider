@@ -428,7 +428,7 @@
             var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, isNumber = this.isNumber;
             if (typeof hSize === "string" && isNumber(hSize)) {
                 if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
-                    try { hSize = eval(width + hSize.charAt(0) + Math.abs(parseFloat(hSize))); }
+                    try { hSize = width + parseFloat(hSize.charAt(0) + Math.abs(parseFloat(hSize))); }
                     catch (e) { console.warn(e); }
                 }
                 else if (hSize.indexOf(",")) {
@@ -1028,7 +1028,7 @@
         _validateEndAngle: function () {
             var o = this.options, start = o.startAngle, end = o.endAngle;
             if (typeof end === "string" && this.isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
-                try { end = eval(start + end.charAt(0) + Math.abs(parseFloat(end))); }
+                try { end = start + parseFloat(end.charAt(0) + Math.abs(parseFloat(end))); }
                 catch (e) { console.warn(e); }
             }
             end = (this.isNumber(end) ? parseFloat(end) : 360) % 360;
