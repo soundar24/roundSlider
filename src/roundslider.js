@@ -428,8 +428,7 @@
             var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, isNumber = this.isNumber;
             if (typeof hSize === "string" && isNumber(hSize)) {
                 if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
-                    try { hSize = width + parseFloat(hSize.charAt(0) + Math.abs(parseFloat(hSize))); }
-                    catch (e) { console.warn(e); }
+                    hSize = width + parseFloat(hSize);
                 }
                 else if (hSize.indexOf(",")) {
                     var s = hSize.split(",");
@@ -1027,11 +1026,15 @@
         },
         _validateEndAngle: function () {
             var o = this.options, start = o.startAngle, end = o.endAngle;
-            if (typeof end === "string" && this.isNumber(end) && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
-                try { end = start + parseFloat(end.charAt(0) + Math.abs(parseFloat(end))); }
-                catch (e) { console.warn(e); }
+            if (this.isNumber(end)) {
+                if (typeof end === "string" && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
+                    end = start + parseFloat(end);
+                }
+                end = parseFloat(end);
             }
-            end = (this.isNumber(end) ? parseFloat(end) : 360) % 360;
+            else end = 360;
+
+            end %= 360;
             if (end <= start) end += 360;
             return end;
         },
@@ -1602,8 +1605,9 @@
         return d.join(" ");
     }
 
-    RoundSlider.prototype.$getArcLength = function (radius, degree = 360) {
+    RoundSlider.prototype.$getArcLength = function (radius, degree) {
         // when degree not provided we can consider that arc as a complete circle
+        if (typeof degree == "undefined") degree = 360;
         // circle's arc length formula => 2πR(Θ/360)
         return 2 * Math.PI * radius * (degree / 360);
     }
