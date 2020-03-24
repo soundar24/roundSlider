@@ -49,6 +49,10 @@
             sliderType: "default",
             circleShape: "full",
             handleShape: "round",
+            // the 'startValue' property decides at which point the slider should start.
+            // otherwise, by default the slider starts with min value. this is mainly used
+            // for min-range slider, where you can customize the min-range start position.
+            startValue: null,
 
             // SVG related properties
             svgMode: false,
@@ -74,7 +78,7 @@
         },
         _props: function () {
             return {
-                numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle"],
+                numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
                     "keyboardAction", "mouseScrollAction", "svgMode"],
                 stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
@@ -412,14 +416,17 @@
             var label = id + "handle" + (o.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
-            var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle).rsRotate(this._start);
+            var handleDefaults = this._handleDefaults();
+            var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
             bar.addClass(o.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
+            // at initial creation keep the handle and bar at the default angle position
+            bar.rsRotate(handleDefaults.angle);
             this.container.append(bar);
             this._refreshHandle();
 
             this.bar = bar;
             this._active = index;
-            if (index != 1 && index != 2) this["_handle" + index] = this._handleDefaults();
+            if (index != 1 && index != 2) this["_handle" + index] = handleDefaults;
             this._bind(handle, "focus", this._handleFocus);
             this._bind(handle, "blur", this._handleBlur);
             return handle;
@@ -439,9 +446,14 @@
             var diff = (width + this._border() - w) / 2;
             this._handles().css({ height: h, width: w, "margin": -h / 2 + "px 0 0 " + diff + "px" });
         },
+        _defaultValue: function () {
+            var o = this.options, startValue = o.startValue;
+            var defaultValue = this.isNumber(startValue) ? this._limitValue(startValue) : o.min;
+            return defaultValue;
+        },
         _handleDefaults: function () {
-            var min = this.options.min;
-            return { angle: this._valueToAngle(min), value: min };
+            var defaultValue = this._defaultValue();
+            return { angle: this._valueToAngle(defaultValue), value: defaultValue };
         },
         _handleBars: function () {
             return this.container.children("div.rs-bar");
@@ -668,35 +680,41 @@
 
         // internal methods
         _changeSliderValue: function (value, angle) {
-            var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle);
+            var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle),
+                activeHandle = this._active;
             if (!this._rangeSlider && !this._showRange) {
 
-                this["_handle" + this._active] = { angle: angle, value: value };
+                this["_handle" + activeHandle] = { angle: angle, value: value };
                 this.options.value = value;
                 this.bar.rsRotate(lAngle);
                 this._updateARIA(value);
             }
-            else if ((this._active == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
-                    (this._active == 2 && oAngle >= this._oriAngle(this._handle1.angle)) || this._invertRange) {
+            else {
+                var isMinRange = (this.options.sliderType == "min-range");
+                var isValidRange = (activeHandle == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
+                    (activeHandle == 2 && oAngle >= this._oriAngle(this._handle1.angle));
+                var canAllowInvertRange = this._invertRange;
 
-                this["_handle" + this._active] = { angle: angle, value: value };
-                this.options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
-                this.bar.rsRotate(lAngle);
-                this._updateARIA(value);
+                if (isMinRange || isValidRange || canAllowInvertRange) {
+                    this["_handle" + activeHandle] = { angle: angle, value: value };
+                    this.options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
+                    this.bar.rsRotate(lAngle);
+                    this._updateARIA(value);
 
-                if (this.options.svgMode) {
-                    this._moveSliderRange();
-                    return;
+                    if (this.options.svgMode) {
+                        this._moveSliderRange();
+                        return;
+                    }
+
+                    // classic DIV handling
+                    var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
+                    if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
+                    this.block2.css("opacity", o2);
+                    this.block3.css("opacity", o3);
+
+                    (activeHandle == 1 ? this.block4 : this.block2).rsRotate(lAngle - 180);
+                    (activeHandle == 1 ? this.block1 : this.block3).rsRotate(lAngle);
                 }
-
-                // classic DIV handling
-                var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
-                if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
-                this.block2.css("opacity", o2);
-                this.block3.css("opacity", o3);
-
-                (this._active == 1 ? this.block4 : this.block2).rsRotate(lAngle - 180);
-                (this._active == 1 ? this.block1 : this.block3).rsRotate(lAngle);
             }
         },
 
@@ -772,9 +790,18 @@
 
             var startAngle = this._start,
                 totalAngle = this._end;
-            var handle1Angle = this._handle1.angle - startAngle,
-                handle2Angle = this._handle2.angle - startAngle;
-            if (isInit) handle1Angle = handle2Angle = 0;
+            var handle1Angle = this._handle1.angle,
+                handle2Angle = this._handle2.angle;
+            if (isInit) {
+                // at the initial time, keep all the handles angle to default angle
+                // so that once the value set, the animation happens from this default angle
+                handle1Angle = handle2Angle = this._handleDefaults().angle;
+            }
+
+            // always to get the actual angle, just minus from the start angle
+            handle1Angle -= startAngle;
+            handle2Angle -= startAngle;
+
             var dashArray = [];
 
             if (handle1Angle <= handle2Angle) {
@@ -783,6 +810,13 @@
                 dashArray.push(0);
             }
             else {
+                if (this.options.sliderType == "min-range") {
+                    // this case will be executed for the min-range slider with any startValue set.
+                    // when the handle value goes beyond the startValue, then this will be triggered.
+                    // which means that is a invert range selection, but for min-range slider the invert range
+                    // is not applicable, so by default show the normal range instead of the inverted range.
+                    dashArray.push(0);
+                }
                 // when handle1 value is larger then it's a invert range selection, also swap the values
                 var temp = handle1Angle;
                 handle1Angle = handle2Angle;
@@ -1125,25 +1159,25 @@
             var add = (this._start < this._end) ? 0 : 360;
             this._end += add - this._start;
         },
+        _parseModelValue: function (value) {
+            return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
+        },
         _analyzeModelValue: function () {
-            var o = this.options, val = o.value, min = o.min, max = o.max,
-                lastValue, newValue, isNumber = this.isNumber;
+            var o = this.options, val = o.value, newValue;
             if (val instanceof Array) val = val.toString();
-            var valueIsString = (typeof val == "string");
-
-            var parts = valueIsString ? val.split(",") : [val];
+            var parts = (typeof val == "string") ? val.split(",") : [val];
+            if (parts.length == 1 && this.isNumber(parts[0])) parts = [o.min, parts[0]];
+            else if (parts.length >= 2 && !this.isNumber(parts[1])) parts[1] = o.max;
 
             if (this._rangeSlider) {
-                if (valueIsString) {
-                    if (parts.length >= 2) newValue = (isNumber(parts[0]) ? parts[0] : min) + "," +
-                        (isNumber(parts[1]) ? parts[1] : max);
-                    else newValue = isNumber(parts[0]) ? min + "," + parts[0] : min + "," + min;
-                }
-                else newValue = isNumber(val) ? min + "," + val : min + "," + min;
+                newValue = [
+                    this._parseModelValue(parts[0]),
+                    this._parseModelValue(parts[1])
+                ].toString();
             }
             else {
-                if (valueIsString) lastValue = parts.pop(), newValue = isNumber(lastValue) ? parseFloat(lastValue) : min;
-                else newValue = isNumber(val) ? parseFloat(val) : min;
+                var lastValue = parts.pop();
+                newValue = this._parseModelValue(lastValue);
             }
             this.options.value = newValue;
         },
@@ -1324,6 +1358,13 @@
                     this._updatePre();
                     this._updateHidden();
                     this._updateTooltip();
+                    break;
+                case "startValue":
+                    var o = this.options;
+                    if (o.svgMode && o.sliderType == "min-range") {
+                        this._handle1 = this._handleDefaults();
+                        this._moveSliderRange();
+                    }
                     break;
                 case "radius":
                     this._setRadius();
