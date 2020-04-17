@@ -65,8 +65,11 @@
             beforeCreate: null,
             create: null,
             start: null,
+            beforeValueChange: null,
             drag: null,
             change: null,
+            update: null,
+            valueChange: null,
             stop: null,
             tooltipFormat: null
         },
@@ -176,7 +179,7 @@
             var padd = this.options.width, start = this._start, path;
             path = this.$createElement("div.rs-path rs-transition");
 
-            if (this._rangeSlider || this._showRange) {
+            if (this._showRange) {
                 this.block1 = path.clone().addClass("rs-range-color").rsRotate(start);
                 this.block2 = path.clone().addClass("rs-range-color").css("opacity", "0").rsRotate(start);
                 this.block3 = path.clone().addClass("rs-path-color").rsRotate(start);
@@ -208,7 +211,16 @@
             if (this.options.mouseScrollAction) this._bindScrollEvents("_bind");
         },
         _updatePre: function () {
-            this._prechange = this._predrag = this.options.value;
+            this._prechange = this._predrag = this._pre_bvc = this._preValue = this.options.value;
+        },
+        _backupPreValue: function () {
+            this._pre_handle1 = this._handle1;
+            this._pre_handle2 = this._handle2;
+        },
+        _revertPreValue: function () {
+            this._handle1 = this._pre_handle1;
+            this._handle2 = this._pre_handle2;
+            this._updateModelValue();
         },
         _setValue: function () {
             if (this._rangeSlider) {
@@ -216,8 +228,8 @@
                 this._setHandleValue(2);
             }
             else {
-                if (this._showRange) this._setHandleValue(1);
-                var index = (this.options.sliderType == "default") ? (this._active || 1) : parseFloat(this.bar.children().attr("index"));
+                if (this._minRange && !this.options.svgMode) this._setHandleValue(1);
+                var index = this._minRange ? 2 : (this._active || 1);
                 this._setHandleValue(index);
             }
         },
@@ -268,16 +280,16 @@
                     val = "-" + val.slice(1).replace("-", ",");
                 }
                 this.options.value = val;
-                this._analyzeModelValue();
-                this._validateModelValue();
-                this._setValue();
-                this.input.val(this._getTooltipValue(true));
+
+                if (this._validateValue(true)) {
+                    this.input.val(this._getTooltipValue(true));
+                    this._raiseEvent("change");
+                }
             }
             else {
                 this.tooltip.addClass("edit").removeClass("hover");
                 this._updateTooltip();
             }
-            this._raiseEvent("change");
         },
         _setHandleShape: function () {
             var type = this.options.handleShape, allHandles = this._handles();
@@ -289,7 +301,7 @@
         _setHandleValue: function (index) {
             this._active = index;
             var handle = this["_handle" + index];
-            if (this.options.sliderType != "min-range") this.bar = this._activeHandleBar();
+            if (!this._minRange) this.bar = this._activeHandleBar();
             this._changeSliderValue(handle.value, handle.angle);
         },
         _setAnimation: function () {
@@ -370,13 +382,15 @@
             }
         },
         _border: function (seperator) {
-            if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             if (this.options.svgMode) return this.options.borderWidth * 2;
+            if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
         _appendHandle: function () {
-            if (this._rangeSlider || !this._showRange) this._createHandle(1);
-            if (this._rangeSlider || this._showRange) this._createHandle(2);
+            // if this is range or default slider then create handle 1
+            if (this._rangeSlider || !this._minRange) this._createHandle(1);
+            // if this is range or min-range slider then create handle 2
+            if (this._showRange) this._createHandle(2);
         },
         _appendSeperator: function () {
             this._startLine = this._addSeperator(this._start, "rs-start");
@@ -395,7 +409,7 @@
             if (o.lineCap == "round" && o.circleShape != "full") {
                 bars.addClass("rs-rounded");
                 seperators.css({ width: size, height: (size / 2) + 1 });
-                this._startLine.children().css("margin-top", -1).addClass(o.sliderType == "min-range" ? "rs-range-color" : "rs-path-color");
+                this._startLine.children().css("margin-top", -1).addClass(this._minRange ? "rs-range-color" : "rs-path-color");
                 this._endLine.children().css("margin-top", size / -2).addClass("rs-path-color");
             }
             else {
@@ -413,12 +427,13 @@
             handle.attr({ "index": index, "tabIndex": "0" });
 
             var id = this._dataElement()[0].id, id = id ? id + "_" : "";
-            var label = id + "handle" + (o.sliderType == "range" ? "_" + (index == 1 ? "start" : "end") : "");
+            var label = id + "handle";
+            if (this._rangeSlider) label += "_" + (index == 1 ? "start" : "end");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
             var handleDefaults = this._handleDefaults();
             var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
-            bar.addClass(o.sliderType == "range" && index == 2 ? "rs-second" : "rs-first");
+            bar.addClass(this._rangeSlider && index == 2 ? "rs-second" : "rs-first");
             // at initial creation keep the handle and bar at the default angle position
             bar.rsRotate(handleDefaults.angle);
             this.container.append(bar);
@@ -462,6 +477,7 @@
             return this._handleBars().find(".rs-handle");
         },
         _activeHandleBar: function (index) {
+            if (this._minRange) return this.bar;
             index = (index != undefined) ? index : this._active;
             return $(this._handleBars()[index - 1]);
         },
@@ -483,11 +499,63 @@
             var preValue = this["_pre" + event], currentValue = this.options.value;
             if (preValue !== currentValue) {
                 this["_pre" + event] = currentValue;
-                if (event == "change") this._updatePre();
+                if (event == "change") this._predrag = currentValue;
                 this._updateTooltip();
                 if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
-                return this._raise(event, { value: currentValue, preValue: preValue, "handle": this._handleArgs() });
+
+                var _handle = this._handleArgs();
+                this._raise(event, { value: currentValue, preValue: preValue, "handle": _handle });
+
+                if (currentValue != this._preValue) {
+                    // whenever the drag and change event happens, at that time trigger 'update' also
+                    this._raise("update", { value: currentValue, preValue: preValue, "handle": _handle, action: event });
+
+                    // after the "update" event trigger the "valueChange" event
+                    this._raiseValueChange(event);
+                }
             }
+        },
+        _raiseBeforeValueChange: function (action, value) {
+            if (typeof value !== "undefined") {
+                if (this._rangeSlider) value = this._formRangeValue(value);
+            } else {
+                value = this.options.value;
+            }
+
+            if (value !== this._pre_bvc) {
+                var args = {
+                    value: value,
+                    preValue: this._pre_bvc,
+                    action: action,
+                    isUserAction: (action !== "code"),
+                    cancelable: true
+                };
+                // store the previous value for the beforeValueChange event
+                this._pre_bvc = value;
+
+                return (this._raise("beforeValueChange", args) != false);
+            }
+            // by default the return value is true, since when changing the min and max values
+            // at that time also slider needed to update, even though value not changed
+            return true;
+        },
+        _raiseValueChange: function (action) {
+            var o = this.options, handles = [];
+            if (!this._minRange) handles.push(this._handleArgs(1)); // for range and default slider
+            if (this._showRange) handles.push(this._handleArgs(2)); // for range and min-range slider
+
+            var args = {
+                value: o.value,
+                preValue: this._preValue,
+                action: action,
+                isUserAction: (action !== "code"),
+                isInvertedRange: this._isInvertedRange,
+                handles: handles
+            };
+            this._raise("valueChange", args);
+
+            // once the valueChange event raised then update all the preVal flags
+            this._updatePre();
         },
 
         // Events handlers
@@ -529,8 +597,10 @@
                         this.bar = this._activeHandleBar();
                     }
 
-                    this._changeSliderValue(value, angle);
-                    this._raiseEvent("change");
+                    if (this._raiseBeforeValueChange("change", value)) {
+                        this._changeSliderValue(value, angle);
+                        this._raiseEvent("change");
+                    }
                 }
             }
         },
@@ -551,8 +621,10 @@
             var d = this._getAngleValue(point, center, true), angle, value;
             angle = d.angle, value = d.value;
 
-            this._changeSliderValue(value, angle);
-            this._raiseEvent("drag");
+            if (this._raiseBeforeValueChange("drag", value)) {
+                this._changeSliderValue(value, angle);
+                this._raiseEvent("drag");
+            }
         },
         _handleUp: function (e) {
             this._handles().addClass("rs-move");
@@ -604,8 +676,11 @@
                 val = this._getKeyValue("End");
 
             ang = this._valueToAngle(val);
-            this._changeSliderValue(val, ang);
-            this._raiseEvent("drag");
+
+            if (this._raiseBeforeValueChange("drag", val)) {
+                this._changeSliderValue(val, ang);
+                this._raiseEvent("drag");
+            }
         },
         _handleKeyUp: function (e) {
             this._addAnimation();
@@ -640,10 +715,12 @@
             val = this._limitValue(val);
             ang = this._valueToAngle(val);
 
-            this._removeAnimation();
-            this._changeSliderValue(val, ang);
-            this._raiseEvent("change");
-            this._addAnimation();
+            if (this._raiseBeforeValueChange("change", val)) {
+                this._removeAnimation();
+                this._changeSliderValue(val, ang);
+                this._raiseEvent("change");
+                this._addAnimation();
+            }
         },
         _updateActiveHandle: function (e) {
             var $target = $(e.target);
@@ -682,20 +759,19 @@
         _changeSliderValue: function (value, angle) {
             var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle),
                 activeHandle = this._active;
-            if (!this._rangeSlider && !this._showRange) {
-
+            if (!this._showRange) {
+                // if this is the default slider
                 this["_handle" + activeHandle] = { angle: angle, value: value };
                 this.options.value = value;
                 this.bar.rsRotate(lAngle);
                 this._updateARIA(value);
             }
             else {
-                var isMinRange = (this.options.sliderType == "min-range");
                 var isValidRange = (activeHandle == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
                     (activeHandle == 2 && oAngle >= this._oriAngle(this._handle1.angle));
                 var canAllowInvertRange = this._invertRange;
 
-                if (isMinRange || isValidRange || canAllowInvertRange) {
+                if (this._minRange || isValidRange || canAllowInvertRange) {
                     this["_handle" + activeHandle] = { angle: angle, value: value };
                     this.options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
                     this.bar.rsRotate(lAngle);
@@ -803,14 +879,16 @@
             handle2Angle -= startAngle;
 
             var dashArray = [];
+            var isNormalRange = (handle1Angle <= handle2Angle);
+            this._isInvertedRange = !isNormalRange;
 
-            if (handle1Angle <= handle2Angle) {
+            if (isNormalRange) {
                 // starting the dashArray from 0 means normal range, otherwise it's invert range
                 // so when handle1 value is smaller then it's a normal range selection only
                 dashArray.push(0);
             }
             else {
-                if (this.options.sliderType == "min-range") {
+                if (this._minRange) {
                     // this case will be executed for the min-range slider with any startValue set.
                     // when the handle value goes beyond the startValue, then this will be triggered.
                     // which means that is a invert range selection, but for min-range slider the invert range
@@ -855,7 +933,7 @@
         _updateARIA: function (value) {
             var o = this.options, min = o.min, max = o.max;
             this.bar.children().attr({ "aria-valuenow": value });
-            if (o.sliderType == "range") {
+            if (this._rangeSlider) {
                 var handles = this._handles();
                 handles.eq(0).attr({ "aria-valuemin": min });
                 handles.eq(1).attr({ "aria-valuemax": max });
@@ -1007,9 +1085,17 @@
             if (this._isAngular) this._scope()[this._ngName] = val;
         },
         _updateTooltip: function () {
+            var o = this.options;
             if (this.tooltip && !this.tooltip.hasClass("hover"))
                 this.tooltip.html(this._getTooltipValue());
-            this._updateTooltipPos();
+
+            if (o.showTooltip)
+                this._updateTooltipPos();
+            else if (o.mouseScrollAction) {
+                // fix for a weird issue !! with min-range slider, tooltip disabled and mouseScrollAction enabled
+                // when you mouse scroll on slider, the range very strucks. so we need to touch the DOM for this case.
+                this.control.height();
+            }
         },
         _updateTooltipPos: function () {
             this.tooltip && this.tooltip.css(this._getTooltipPos());
@@ -1127,10 +1213,10 @@
         },
         _validateSliderType: function () {
             var type = this.options.sliderType.toLowerCase();
-            this._rangeSlider = this._showRange = false;
+            this._rangeSlider = this._showRange = this._minRange = false;
             if (type == "range") this._rangeSlider = this._showRange = true;
             else if (type.indexOf("min") != -1) {
-                this._showRange = true;
+                this._showRange = this._minRange = true;
                 type = "min-range";
             }
             else type = "default";
@@ -1159,8 +1245,19 @@
             var add = (this._start < this._end) ? 0 : 360;
             this._end += add - this._start;
         },
-        _parseModelValue: function (value) {
-            return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
+        _validateValue: function (isChange) {
+            this._backupPreValue();
+            this._analyzeModelValue();
+            this._validateModelValue();
+
+            if (this._raiseBeforeValueChange(isChange ? "change" : "code")) {
+                this._setValue();
+                this._backupPreValue();
+                return true;
+            } else {
+                this._revertPreValue();
+                return false;
+            }
         },
         _analyzeModelValue: function () {
             var o = this.options, val = o.value, newValue;
@@ -1181,6 +1278,9 @@
             }
             this.options.value = newValue;
         },
+        _parseModelValue: function (value) {
+            return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
+        },
         _validateModelValue: function () {
             var o = this.options, val = o.value;
             if (this._rangeSlider) {
@@ -1199,14 +1299,28 @@
 
                 this._handle1 = this._processStepByValue(val1);
                 this._handle2 = this._processStepByValue(val2);
-                this.options.value = this._handle1.value + "," + this._handle2.value;
             }
             else {
-                var index = this._showRange ? 2 : (this._active || 1);
+                var index = this._minRange ? 2 : (this._active || 1);
                 this["_handle" + index] = this._processStepByValue(this._limitValue(val));
-                if (this._showRange) this._handle1 = this._handleDefaults();
-                this.options.value = this["_handle" + index].value;
             }
+            this._updateModelValue();
+        },
+        _updateModelValue: function () {
+            var value;
+            if (this._rangeSlider) {
+                value = this._handle1.value + "," + this._handle2.value;
+            }
+            else {
+                var index = this._minRange ? 2 : (this._active || 1);
+                value = this["_handle" + index].value;
+            }
+            this.options.value = value;
+        },
+        _formRangeValue: function (value, index) {
+            index = index || this._active;
+            var h1 = this._handle1.value, h2 = this._handle2.value;
+            return (index == 1) ? value + "," + h2 : h1 + "," + value;
         },
 
         // common core methods
@@ -1269,9 +1383,12 @@
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
             args = args || { value: o.value };
+
+            // default event arguments
             args["id"] = this.id;
             args["control"] = this.control;
             args["options"] = o;
+
             if (fn) {
                 args["type"] = event;
                 if (typeof fn === "string") fn = window[fn];
@@ -1311,6 +1428,7 @@
             this.control.empty().removeClass("rs-control").height("").width("");
             this._removeAnimation();
             this._bindControlEvents("_unbind");
+            this._bindScrollEvents("_unbind");
         },
 
         // methods to dynamic options updation (through option)
@@ -1340,30 +1458,30 @@
                 value = value.toLowerCase();
             }
 
-            if (!forceSet && this.options[property] == value) return;
+            this._preValue = this.options.value;
+            if (!forceSet && this.options[property] === value) return;
             this.options[property] = value;
+
             switch (property) {
                 case "startAngle":
                 case "endAngle":
                     this._validateStartEnd();
                     this._updateSeperator();    // non SVG mode only
                     this._appendOverlay();      // non SVG mode only
+                case "startValue":
+                    if (this._minRange) {
+                        this._handle1 = this._handleDefaults();
+                    }
                 case "min":
                 case "max":
                 case "step":
                 case "value":
-                    this._analyzeModelValue();
-                    this._validateModelValue();
-                    this._setValue();
-                    this._updatePre();
-                    this._updateHidden();
-                    this._updateTooltip();
-                    break;
-                case "startValue":
-                    var o = this.options;
-                    if (o.svgMode && o.sliderType == "min-range") {
-                        this._handle1 = this._handleDefaults();
-                        this._moveSliderRange();
+                    if (this._validateValue()) {
+                        this._updateHidden();
+                        this._updateTooltip();
+                        if (this.options.value !== this._preValue) {
+                            this._raiseValueChange("code");
+                        }
                     }
                     break;
                 case "radius":
@@ -1475,7 +1593,7 @@
             return this;
         },
         getValue: function (index) {
-            if (this.options.sliderType == "range" && this.isNumber(index)) {
+            if (this._rangeSlider && this.isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
@@ -1485,13 +1603,11 @@
         setValue: function (value, index) {
             if (this.isNumber(value)) {
                 if (this.isNumber(index)) {
-                    var sliderType = this.options.sliderType;
-                    if (sliderType == "range") {
+                    if (this._rangeSlider) {
                         var i = parseFloat(index), val = parseFloat(value);
-                        if (i == 1) value = val + "," + this._handle2.value;
-                        else if (i == 2) value = this._handle1.value + "," + val;
+                        value = this._formRangeValue(val, i);
                     }
-                    else if (sliderType == "default") this._active = index;
+                    else if (!this._minRange) this._active = index;
                 }
                 this._set("value", value);
             }
