@@ -1,9 +1,9 @@
 ﻿/*!
- * roundSlider v1.4.1 | (c) 2015-2020, Soundar
+ * roundSlider v1.5.0 | (c) 2015-2020, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
-.rs-ie, .rs-edge {
+.rs-ie, .rs-edge, .rs-handle {
     -ms-touch-action: none;
     touch-action: none;
 }
