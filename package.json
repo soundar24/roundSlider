@@ -1,6 +1,6 @@
 {
   "name": "round-slider",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "roundSlider - A free jQuery plugin",
   "main": "dist/roundslider.min.js",
   "style": "dist/roundslider.min.css",
