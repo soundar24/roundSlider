@@ -64,6 +64,7 @@ $("#slider").roundSlider({
 	borderColor: null,
 	pathColor: null,
 	rangeColor: null,
+	tooltipColor: null,
 
 	// events
 	beforeCreate: null,
