@@ -179,9 +179,25 @@
 .half.left .rs-tooltip, .half.right .rs-tooltip { top: 50%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; }
-.rs-tooltip.edit, .rs-tooltip .rs-input { padding: 5px 8px; }
+.rs-tooltip.edit { padding: 5px 8px; }
 .rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
 .rs-readonly .rs-tooltip.edit:hover { border-color: transparent; cursor: default; }
+
+/*** Fix for tooltip positioning when element in hidden state ***/
+/*** maybe in future we can consider this as the default way ***/
+.rs-tooltip.rs-center { margin: 0px !important; }
+.half.top .rs-tooltip.rs-center,
+.half.bottom .rs-tooltip.rs-center {
+    transform: translate(-50%, 0px);
+}
+.half.left .rs-tooltip.rs-center,
+.half.right .rs-tooltip.rs-center {
+    transform: translate(0px, -50%);
+}
+.full .rs-tooltip.rs-center {
+    transform: translate(-50%, -50%);
+}
+.rs-tooltip.rs-reset { margin: 0px !important; top: 0px !important; left: 0px !important; }
 
 /*** handle types ***/
 .rs-handle { border-radius: 1000px; outline: 0 none; float: left; }

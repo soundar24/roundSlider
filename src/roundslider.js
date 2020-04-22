@@ -60,6 +60,7 @@
             borderColor: null,
             pathColor: null,
             rangeColor: null,
+            tooltipColor: null,
 
             // events
             beforeCreate: null,
@@ -235,14 +236,19 @@
         },
         _appendTooltip: function () {
             if (this.container.children(".rs-tooltip").length !== 0) return;
-            this.tooltip = this.$createElement("span.rs-tooltip rs-tooltip-text");
-            this.container.append(this.tooltip);
+            var tooltip = this.tooltip = this.$createElement("span.rs-tooltip rs-tooltip-text");
+            this.container.append(tooltip);
+            this._setTooltipColor(tooltip);
             this._tooltipEditable();
             this._updateTooltip();
         },
         _removeTooltip: function () {
             if (this.container.children(".rs-tooltip").length == 0) return;
             this.tooltip && this.tooltip.remove();
+        },
+        _setTooltipColor: function (ele) {
+            var color = this.options.tooltipColor;
+            if (ele && color != null) ele.css("color", color);
         },
         _tooltipEditable: function () {
             var o = this.options, tooltip = this.tooltip, hook;
@@ -266,6 +272,7 @@
                 height: tooltip.outerHeight() - border,
                 width: tooltip.outerWidth() - border
             });
+            this._setTooltipColor(input);
             tooltip.html(input).removeClass("edit").addClass("hover");
 
             input.focus().val(this._getTooltipValue(true));
@@ -287,6 +294,7 @@
                 }
             }
             else {
+                delete this.input;
                 this.tooltip.addClass("edit").removeClass("hover");
                 this._updateTooltip();
             }
@@ -1085,43 +1093,47 @@
             if (this._isAngular) this._scope()[this._ngName] = val;
         },
         _updateTooltip: function () {
-            var o = this.options;
-            if (this.tooltip && !this.tooltip.hasClass("hover"))
-                this.tooltip.html(this._getTooltipValue());
-
-            if (o.showTooltip)
+            var o = this.options, tooltip = this.tooltip;
+            if (tooltip){
+                if (!tooltip.hasClass("hover"))
+                    tooltip.html(this._getTooltipValue());
                 this._updateTooltipPos();
-            else if (o.mouseScrollAction) {
+            }
+
+            if (!o.showTooltip && o.mouseScrollAction) {
                 // fix for a weird issue !! with min-range slider, tooltip disabled and mouseScrollAction enabled
                 // when you mouse scroll on slider, the range very strucks. so we need to touch the DOM for this case.
                 this.control.height();
             }
         },
         _updateTooltipPos: function () {
-            this.tooltip && this.tooltip.css(this._getTooltipPos());
-        },
-        _getTooltipPos: function () {
-            var circleShape = this.options.circleShape, pos;
-            var tooltipHeight = this.tooltip.outerHeight(), tooltipWidth = this.tooltip.outerWidth();
+            var o = this.options, circleShape = o.circleShape, pos = {};
+            if (!o.showTooltip || circleShape.indexOf("quarter") === 0) return;
+            var tooltip = this.tooltip;
 
-            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
-                return {
-                    "margin-top": -tooltipHeight / 2,
-                    "margin-left": -tooltipWidth / 2
-                };
+            if(!tooltip.is(":visible")) {
+                // when the element is not in the visible state we can't find height and width
+                // for this case we can set the translate to center the element
+                // To-Do: maybe in future, based on multiple use cases we can make this way as default
+                tooltip.addClass("rs-center");
             }
-            else if (circleShape.indexOf("half") != -1) {
-                switch (circleShape) {
-                    case "half-top":
-                    case "half-bottom":
-                        pos = { "margin-left": -tooltipWidth / 2 }; break;
-                    case "half-left":
-                    case "half-right":
-                        pos = { "margin-top": -tooltipHeight / 2 }; break;
+            else {
+                tooltip.removeClass("rs-center").addClass("rs-reset");
+                var marginTop = -(tooltip.outerHeight() / 2),   // before get the tooltip height and width, we can reset
+                    marginLeft = -(tooltip.outerWidth() / 2);   // the previous styles so that we can get the proper values.
+                tooltip.removeClass("rs-reset");
+
+                if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
+                    pos = { "margin-top": marginTop, "margin-left": marginLeft };
                 }
-                return pos;
+                else if (circleShape == "half-top" || circleShape == "half-bottom") {
+                    pos = { "margin-left": marginLeft };
+                }
+                else if (circleShape == "half-left" || circleShape == "half-right") {
+                    pos = { "margin-top": marginTop };
+                }
             }
-            return {};
+            tooltip.css(pos);
         },
         _getTooltipValue: function (isNormal) {
             var value = this.options.value;
@@ -1517,6 +1529,10 @@
                     this._tooltipEditable();
                     this._updateTooltipPos();
                     break;
+                case "tooltipColor":
+                    this._setTooltipColor(this.tooltip);
+                    this._setTooltipColor(this.input);
+                    break;
                 case "disabled":
                     this.options.disabled ? this.disable() : this.enable();
                     break;
@@ -1611,6 +1627,9 @@
                 }
                 this._set("value", value);
             }
+        },
+        refreshTooltip: function () {
+            this._updateTooltipPos();
         },
         disable: function () {
             this.options.disabled = true;
