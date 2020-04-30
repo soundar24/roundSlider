@@ -529,23 +529,29 @@
             } else {
                 value = this.options.value;
             }
+            var isUserAction = (action !== "code");
 
             if (value !== this._pre_bvc) {
                 var args = {
                     value: value,
                     preValue: this._pre_bvc,
                     action: action,
-                    isUserAction: (action !== "code"),
+                    isUserAction: isUserAction,
                     cancelable: true
                 };
-                // store the previous value for the beforeValueChange event
-                this._pre_bvc = value;
 
-                return (this._raise("beforeValueChange", args) != false);
+                var returnValue = (this._raise("beforeValueChange", args) != false);
+                if (returnValue) {
+                    // if the beforeValueChange is success then only we can update the preVal flag
+                    // otherwise when user prevent the event, at that time we can't revert this value
+                    this._pre_bvc = value;
+                }
+                return returnValue;
             }
-            // by default the return value is true, since when changing the min and max values
-            // at that time also slider needed to update, even though value not changed
-            return true;
+            // if this is the from user action then return false, because user can't update the same value again
+            // otherwise if this is from 'code' then return true, since when changing the min and max values
+            // at that time also slider needs to update, even though value not changed
+            return isUserAction ? false : true;
         },
         _raiseValueChange: function (action) {
             var o = this.options, handles = [];
