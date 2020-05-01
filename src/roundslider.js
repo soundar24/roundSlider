@@ -90,7 +90,8 @@
         },
         
         _init: function () {
-            if (this.options.svgMode) {
+            var options = this.options;
+            if (options.svgMode) {
                 var EMPTY_FUNCTION = function () {}; 
                 this._appendSeperator = EMPTY_FUNCTION;
                 this._refreshSeperator = EMPTY_FUNCTION;
@@ -100,25 +101,17 @@
                 this._updateWidth = EMPTY_FUNCTION;
             }
 
-            this._isBrowserSupport = this._isBrowserSupported();
-            this._isKO = false;
-            this._isAngular = false;
             if (this.control.is("input")) {
                 this._isInputType = true;
                 this._hiddenField = this.control;
                 this.control = this.$createElement("div");
                 this.control.insertAfter(this._hiddenField);
-                this.options.value = this._hiddenField.val() || this.options.value;
-                var that = this;
-                this._checkKO() && setTimeout(function () { that._checkKO(); }, 1);
-                this._checkAngular();
+                options.value = this._hiddenField.val() || options.value;
             }
-            this._bindOnDrag = false;
-            var _updateOn = this._dataElement().attr("data-updateon");
-            if (typeof _updateOn == "string") { if (_updateOn == "drag") this._bindOnDrag = true; }
-            else if (this._isAngular) this._bindOnDrag = true;
 
-            this._onInit();
+            if (this._isBrowserSupported()) {
+                this._onInit();
+            }
         },
         _onInit: function () {
             this._initialize();
@@ -128,7 +121,6 @@
         _initialize: function () {
             var browserName = this.browserName = this.getBrowserName();
             if (browserName) this.control.addClass("rs-" + browserName);
-            if (!this._isBrowserSupport) return;
             this._isReadOnly = false;
             this._checkDataType();
             this._refreshCircleShape();
@@ -140,22 +132,14 @@
             var $rootCSS = "rs-control " + (this.options.svgMode ? "rs-svg-mode" : "rs-classic-mode");
             this.control.addClass($rootCSS).empty().append(this.container);
 
-            if (this._isBrowserSupport) {
-                this._createLayers();
-                this._createOtherLayers();
-                this._setContainerClass();
-                this._setRadius();
-                this._setProperties();
-                this._setValue();
-                this._updateTooltipPos();
-                this._bindControlEvents("_bind");
-            }
-            else {
-                var msg = this.$createElement("div.rs-msg");
-                msg.html(typeof this._throwError === "function" ? this._throwError() : this._throwError);
-                this.control.empty().addClass("rs-error").append(msg);
-                if (this._isInputType) this.control.append(this._dataElement());
-            }
+            this._createLayers();
+            this._createOtherLayers();
+            this._setContainerClass();
+            this._setRadius();
+            this._setProperties();
+            this._setValue();
+            this._updateTooltipPos();
+            this._bindControlEvents("_bind");
         },
         _update: function () {
             this._validateSliderType();
@@ -166,7 +150,8 @@
             this._validateModelValue();
         },
         _createLayers: function () {
-            if(this.options.svgMode) {
+            var options = this.options;
+            if(options.svgMode) {
                 this._createSVGElements();
                 this._setSVGAttributes();
                 this._setSVGStyles();
@@ -177,7 +162,7 @@
             this.block = this.$createElement("div.rs-block rs-outer rs-border");
             this.innerContainer.append(this.block);
 
-            var padd = this.options.width, start = this._start, path;
+            var padd = options.width, start = this._start, path;
             path = this.$createElement("div.rs-path rs-transition");
 
             if (this._showRange) {
@@ -202,14 +187,15 @@
             this._appendHiddenField();
         },
         _setProperties: function () {
+            var options = this.options;
             this._updatePre();
             this._setHandleShape();
             this._addAnimation();
             this._appendTooltip();
-            if (!this.options.showTooltip) this._removeTooltip();
-            if (this.options.disabled) this.disable();
-            else if (this.options.readOnly) this._readOnly(true);
-            if (this.options.mouseScrollAction) this._bindScrollEvents("_bind");
+            if (!options.showTooltip) this._removeTooltip();
+            if (options.disabled) this.disable();
+            else if (options.readOnly) this._readOnly(true);
+            if (options.mouseScrollAction) this._bindScrollEvents("_bind");
         },
         _updatePre: function () {
             this._prechange = this._predrag = this._pre_bvc = this._preValue = this.options.value;
@@ -277,8 +263,7 @@
 
             input.focus().val(this._getTooltipValue(true));
 
-            this._bind(input, "blur", this._focusOut);
-            this._bind(input, "change", this._focusOut);
+            this._bind(input, "blur change", this._focusOut);
         },
         _focusOut: function (e) {
             if (e.type == "change") {
@@ -300,21 +285,17 @@
             }
         },
         _setHandleShape: function () {
-            var type = this.options.handleShape, allHandles = this._handles();
+            var options = this.options, type = options.handleShape, allHandles = this._handles();
             allHandles.removeClass("rs-handle-dot rs-handle-square");
             if (type == "dot") allHandles.addClass("rs-handle-dot");
             else if (type == "square") allHandles.addClass("rs-handle-square");
-            else this.options.handleShape = "round";
+            else options.handleShape = "round";
         },
         _setHandleValue: function (index) {
             this._active = index;
             var handle = this["_handle" + index];
             if (!this._minRange) this.bar = this._activeHandleBar();
             this._changeSliderValue(handle.value, handle.angle);
-        },
-        _setAnimation: function () {
-            if (this.options.animation) this._addAnimation();
-            else this._removeAnimation();
         },
         _addAnimation: function () {
             if (this.options.animation) this.control.addClass("rs-animation");
@@ -385,12 +366,13 @@
             else this.innerContainer.removeAttr("style");
 
             if (o.svgMode) {
-                this.svgContainer.height(d).width(d);
-                this.svgContainer.children("svg").height(d).width(d);
+                this.svgContainer.height(d).width(d)
+                    .children("svg").height(d).width(d);
             }
         },
         _border: function (seperator) {
-            if (this.options.svgMode) return this.options.borderWidth * 2;
+            var options = this.options;
+            if (options.svgMode) return options.borderWidth * 2;
             if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
@@ -406,7 +388,7 @@
             this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
-            var line = this.$createElement("span.rs-seperator rs-border"), width = this.options.width, _border = this._border();
+            var line = this.$createElement("span.rs-seperator rs-border");
             var lineWrap = this.$createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
             this.container.append(lineWrap);
             return lineWrap;
@@ -450,8 +432,7 @@
             this.bar = bar;
             this._active = index;
             if (index != 1 && index != 2) this["_handle" + index] = handleDefaults;
-            this._bind(handle, "focus", this._handleFocus);
-            this._bind(handle, "blur", this._handleBlur);
+            this._bind(handle, "focus blur", this._handleFocus);
             return handle;
         },
         _refreshHandle: function () {
@@ -491,13 +472,13 @@
         },
         _handleArgs: function (index) {
             index = (index != undefined) ? index : this._active;
-            var _handle = this["_handle" + index];
+            var _handle = this["_handle" + index] || {};
             return {
                 element: this._activeHandleBar(index).children(),
                 index: index,
                 isActive: index == this._active,
-                value: _handle ? _handle.value : null,
-                angle: _handle ? _handle.angle : null
+                value: _handle.value,
+                angle: _handle.angle
             };
         },
         _dataElement: function () {
@@ -507,9 +488,11 @@
             var preValue = this["_pre" + event], currentValue = this.options.value;
             if (preValue !== currentValue) {
                 this["_pre" + event] = currentValue;
-                if (event == "change") this._predrag = currentValue;
+                if (event == "change") {
+                    this._predrag = currentValue;
+                    this._updateHidden();
+                }
                 this._updateTooltip();
-                if ((event == "change") || (this._bindOnDrag && event == "drag")) this._updateHidden();
 
                 var _handle = this._handleArgs();
                 this._raise(event, { value: currentValue, preValue: preValue, "handle": _handle });
@@ -649,13 +632,23 @@
         },
         _handleFocus: function (e) {
             if (this._isReadOnly) return;
-            var $target = $(e.target);
+            // the below checks are common for both focus and blur events
             this._handles().removeClass("rs-focus");
+            var keyboardActionEnabled = this.options.keyboardAction;
+            if (keyboardActionEnabled) {
+                this._bindKeyboardEvents("_unbind");
+            }
+
+            if (e.type === "blur") {
+                return
+            }
+
+            // when the handle gets focus
+            var $target = $(e.target);
             $target.addClass("rs-focus");
             this.bar = $target.parent();
             this._active = parseFloat($target.attr("index"));
-            if (this.options.keyboardAction) {
-                this._bindKeyboardEvents("_unbind");
+            if (keyboardActionEnabled) {
                 this._bindKeyboardEvents("_bind");
             }
 
@@ -663,12 +656,7 @@
             this.control.find("div.rs-bar").css("z-index", "7");
             this.bar.css("z-index", "8");
         },
-        _handleBlur: function (e) {
-            this._handles().removeClass("rs-focus");
-            if (this.options.keyboardAction) this._bindKeyboardEvents("_unbind");
-        },
         _handleKeyDown: function (e) {
-            if (this._isReadOnly) return;
             var key = e.keyCode, keyCodes = this.keys;
             
             if (key == 27)                                      // if Esc key pressed then hanldes will be focused out
@@ -747,36 +735,32 @@
 
         // Events binding
         _bindControlEvents: function (hook) {
-            this[hook](this.control, "mousedown", this._elementDown);
-            this[hook](this.control, "touchstart", this._elementDown);
+            this[hook](this.control, "mousedown touchstart", this._elementDown);
         },
         _bindScrollEvents: function (hook) {
-            this[hook](this.control, "mousewheel", this._elementScroll);
-            this[hook](this.control, "DOMMouseScroll", this._elementScroll);
+            this[hook](this.control, "mousewheel DOMMouseScroll", this._elementScroll);
         },
         _bindMouseEvents: function (hook) {
-            this[hook]($(document), "mousemove", this._handleMove);
-            this[hook]($(document), "mouseup", this._handleUp);
-            this[hook]($(document), "mouseleave", this._handleUp);
-
-            // *** for Touch support *** //
-            this[hook]($(document), "touchmove", this._handleMove);
-            this[hook]($(document), "touchend", this._handleUp);
-            this[hook]($(document), "touchcancel", this._handleUp);
+            var _document = $(document);
+            this[hook](_document, "mousemove touchmove", this._handleMove);
+            this[hook](_document, "mouseup mouseleave touchend touchcancel", this._handleUp);
         },
         _bindKeyboardEvents: function (hook) {
-            this[hook]($(document), "keydown", this._handleKeyDown);
-            this[hook]($(document), "keyup", this._handleKeyUp);
+            var _document = $(document);
+            this[hook](_document, "keydown", this._handleKeyDown);
+            this[hook](_document, "keyup", this._handleKeyUp);
         },
 
         // internal methods
         _changeSliderValue: function (value, angle) {
             var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle),
-                activeHandle = this._active;
+                activeHandle = this._active,
+                options = this.options;
+
             if (!this._showRange) {
                 // if this is the default slider
                 this["_handle" + activeHandle] = { angle: angle, value: value };
-                this.options.value = value;
+                options.value = value;
                 this.bar.rsRotate(lAngle);
                 this._updateARIA(value);
             }
@@ -787,11 +771,11 @@
 
                 if (this._minRange || isValidRange || canAllowInvertRange) {
                     this["_handle" + activeHandle] = { angle: angle, value: value };
-                    this.options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
+                    options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
                     this.bar.rsRotate(lAngle);
                     this._updateARIA(value);
 
-                    if (this.options.svgMode) {
+                    if (options.svgMode) {
                         this._moveSliderRange();
                         return;
                     }
@@ -819,8 +803,9 @@
             this.$border = this.$createSVG(PATH + "rs-border", pathAttr);
             this.$append(svgEle, [this.$path, this.$range, this.$border]);
 
-            this.svgContainer = this.$createElement("div.rs-svg-container").append(svgEle);
-            this.innerContainer.append(this.svgContainer);
+            this.svgContainer = this.$createElement("div.rs-svg-container")
+                .append(svgEle)
+                .appendTo(this.innerContainer);
         },
         _setSVGAttributes: function () {
             var o = this.options, radius = o.radius, 
@@ -957,39 +942,6 @@
             }
             else this.bar.children().attr({ "aria-valuemin": min, "aria-valuemax": max });
         },
-        // Listener for KO binding
-        _checkKO: function () {
-            var _data = this._dataElement().data("bind");
-            if (typeof _data == "string" && typeof ko == "object") {
-                var _vm = ko.dataFor(this._dataElement()[0]);
-                if (typeof _vm == "undefined") return true;
-                var _all = _data.split(","), _handler;
-                for (var i = 0; i < _all.length; i++) {
-                    var d = _all[i].split(":");
-                    if ($.trim(d[0]) == "value") {
-                        _handler = $.trim(d[1]);
-                        break;
-                    }
-                }
-                if (_handler) {
-                    this._isKO = true;
-                    ko.computed(function () { this.option("value", _vm[_handler]()); }, this);
-                }
-            }
-        },
-        // Listener for Angular binding
-        _checkAngular: function () {
-            if (typeof angular == "object" && typeof angular.element == "function") {
-                this._ngName = this._dataElement().attr("ng-model");
-                if (typeof this._ngName == "string") {
-                    this._isAngular = true; var that = this;
-                    this._scope().$watch(this._ngName, function (newValue, oldValue) { that.option("value", newValue); });
-                }
-            }
-        },
-        _scope: function () {
-            return angular.element(this._dataElement()).scope();
-        },
         _getDistance: function (p1, p2) {
             return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
         },
@@ -1085,18 +1037,16 @@
             return angle;
         },
         _appendHiddenField: function () {
-            this._hiddenField = this._hiddenField || this.$createElement("input");
-            this._hiddenField.attr({
+            var hiddenField = this._hiddenField = this._hiddenField || this.$createElement("input");
+            hiddenField.attr({
                 "type": "hidden", "name": this._dataElement()[0].id || ""
             });
-            this.control.append(this._hiddenField);
+            this.control.append(hiddenField);
             this._updateHidden();
         },
         _updateHidden: function () {
             var val = this.options.value;
             this._hiddenField.val(val);
-            if (this._isKO || this._isAngular) this._hiddenField.trigger("change");
-            if (this._isAngular) this._scope()[this._ngName] = val;
         },
         _updateTooltip: function () {
             var o = this.options, tooltip = this.tooltip;
@@ -1156,10 +1106,10 @@
             return (returnValue != null && typeof returnValue !== "boolean") ? returnValue : value;
         },
         _validateStartAngle: function () {
-            var start = this.options.startAngle;
+            var options = this.options, start = options.startAngle;
             start = (this.isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
-            this.options.startAngle = start;
+            options.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
@@ -1177,20 +1127,17 @@
             return end;
         },
         _refreshCircleShape: function () {
-            var circleShape = this.options.circleShape;
+            var options = this.options, circleShape = options.circleShape;
             var allCircelShapes = ["half-top", "half-bottom", "half-left", "half-right",
                 "quarter-top-left", "quarter-top-right", "quarter-bottom-right", "quarter-bottom-left",
                 "pie", "custom-half", "custom-quarter"];
-            var shape_codes = ["h1", "h2", "h3", "h4", "q1", "q2", "q3", "q4", "3/4", "ch", "cq"];
 
             if (allCircelShapes.indexOf(circleShape) == -1) {
-                var index = shape_codes.indexOf(circleShape);
-                if (index != -1) circleShape = allCircelShapes[index];
-                else if (circleShape == "half") circleShape = "half-top";
+                if (circleShape == "half") circleShape = "half-top";
                 else if (circleShape == "quarter") circleShape = "quarter-top-left";
                 else circleShape = "full";
             }
-            this.options.circleShape = circleShape;
+            options.circleShape = circleShape;
         },
         _appendOverlay: function () {
             var shape = this.options.circleShape;
@@ -1230,7 +1177,7 @@
             }
         },
         _validateSliderType: function () {
-            var type = this.options.sliderType.toLowerCase();
+            var options = this.options, type = options.sliderType.toLowerCase();
             this._rangeSlider = this._showRange = this._minRange = false;
             if (type == "range") this._rangeSlider = this._showRange = true;
             else if (type.indexOf("min") != -1) {
@@ -1238,7 +1185,7 @@
                 type = "min-range";
             }
             else type = "default";
-            this.options.sliderType = type;
+            options.sliderType = type;
         },
         _updateStartEnd: function () {
             var o = this.options, circle = o.circleShape, startAngle = o.startAngle, endAngle = o.endAngle;
@@ -1247,13 +1194,13 @@
                 if (circle.indexOf("quarter") != -1) endAngle = "+90";
                 else if (circle.indexOf("half") != -1) endAngle = "+180";
                 else if (circle == "pie") endAngle = "+270";
-                this.options.endAngle = endAngle;
+                o.endAngle = endAngle;
 
                 if (circle == "quarter-top-left" || circle == "half-top") startAngle = 0;
                 else if (circle == "quarter-top-right" || circle == "half-right") startAngle = 90;
                 else if (circle == "quarter-bottom-right" || circle == "half-bottom") startAngle = 180;
                 else if (circle == "quarter-bottom-left" || circle == "half-left") startAngle = 270;
-                this.options.startAngle = startAngle;
+                o.startAngle = startAngle;
             }
         },
         _validateStartEnd: function () {
@@ -1294,7 +1241,7 @@
                 var lastValue = parts.pop();
                 newValue = this._parseModelValue(lastValue);
             }
-            this.options.value = newValue;
+            o.value = newValue;
         },
         _parseModelValue: function (value) {
             return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
@@ -1394,9 +1341,7 @@
             for (var i = 0; i < properties.length; i++) {
                 if (document.body.style[properties[i]] !== undefined) return true;
             }
-        },
-        _throwError: function () {
-            return "This browser doesn't support the border-radious property.";
+            console.error(pluginName + ' : Browser not supported');
         },
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
@@ -1476,9 +1421,10 @@
                 value = value.toLowerCase();
             }
 
-            this._preValue = this.options.value;
-            if (!forceSet && this.options[property] === value) return;
-            this.options[property] = value;
+            var options = this.options;
+            this._preValue = options.value;
+            if (!forceSet && options[property] === value) return;
+            options[property] = value;
 
             switch (property) {
                 case "startAngle":
@@ -1497,7 +1443,7 @@
                     if (this._validateValue()) {
                         this._updateHidden();
                         this._updateTooltip();
-                        if (this.options.value !== this._preValue) {
+                        if (options.value !== this._preValue) {
                             this._raiseValueChange("code");
                         }
                     }
@@ -1526,10 +1472,10 @@
                     this._setHandleShape();
                     break;
                 case "animation":
-                    this._setAnimation();
+                    options.animation ? this._addAnimation() : this._removeAnimation();
                     break;
                 case "showTooltip":
-                    this.options.showTooltip ? this._appendTooltip() : this._removeTooltip();
+                    options.showTooltip ? this._appendTooltip() : this._removeTooltip();
                     break;
                 case "editableTooltip":
                     this._tooltipEditable();
@@ -1540,13 +1486,13 @@
                     this._setTooltipColor(this.input);
                     break;
                 case "disabled":
-                    this.options.disabled ? this.disable() : this.enable();
+                    options.disabled ? this.disable() : this.enable();
                     break;
                 case "readOnly":
-                    this.options.readOnly ? this._readOnly(true) : (!this.options.disabled && this._readOnly(false));
+                    options.readOnly ? this._readOnly(true) : (!options.disabled && this._readOnly(false));
                     break;
                 case "mouseScrollAction":
-                    this._bindScrollEvents(this.options.mouseScrollAction ? "_bind" : "_unbind");
+                    this._bindScrollEvents(options.mouseScrollAction ? "_bind" : "_unbind");
                     break;
                 case "lineCap":
                     this._setRadius();
@@ -1554,16 +1500,16 @@
                     break;
                 case "circleShape":
                     this._refreshCircleShape();
-                    if (this.options.circleShape == "full") {
-                        this.options.startAngle = 0;
-                        this.options.endAngle = "+360";
+                    if (options.circleShape == "full") {
+                        options.startAngle = 0;
+                        options.endAngle = "+360";
                     }
                 case "sliderType":
                     this._destroyControl();
                     this._onInit();
                     break;
                 case "svgMode":
-                    var $control = this.control, $options = this.options;
+                    var $control = this.control, $options = options;
                     this.destroy();
                     $control[pluginName]($options);
                     break;
@@ -1573,36 +1519,43 @@
 
         // public methods
         option: function (property, value) {
-            if (!this._getInstance() || !this._isBrowserSupport) return;
+            if (!property || !this._getInstance()) return;
+
+            var options = this.options;
             if ($.isPlainObject(property)) {
-                if (property["min"] !== undefined || property["max"] !== undefined) {
-                    if (property["min"] !== undefined) {
-                        this.options.min = property["min"];
-                        delete property["min"];
+                var MIN = "min", MAX = "max", VALUE = "value";
+                var isMinAvailable = property[MIN] !== undefined;
+                var isMaxAvailable = property[MAX] !== undefined;
+
+                if (isMinAvailable || isMaxAvailable) {
+                    if (isMinAvailable) {
+                        options[MIN] = property[MIN];
+                        delete property[MIN];
                     }
-                    if (property["max"] !== undefined) {
-                        this.options.max = property["max"];
-                        delete property["max"];
+                    if (isMaxAvailable) {
+                        options[MAX] = property[MAX];
+                        delete property[MAX];
                     }
-                    var val = this.options.value;
-                    if (property["value"] !== undefined) {
-                        val = property["value"]
-                        delete property["value"];
+
+                    var val = options.value;
+                    if (property[VALUE] !== undefined) {
+                        val = property[VALUE]
+                        delete property[VALUE];
                     }
-                    this._set("value", val, true);
+                    this._set(VALUE, val, true);
                 }
                 for (var prop in property) {
                     this._set(prop, property[prop]);
                 }
             }
-            else if (property && typeof property == "string") {
+            else if (typeof property == "string") {
                 if (value === undefined) return this._get(property);
                 this._set(property, value);
             }
 
             // whenever the properties set dynamically, check for SVG mode. also check
             // any of the property was related to SVG. If yes, then redraw the SVG path
-            if (this.options.svgMode && property) {
+            if (options.svgMode) {
                 if (this._isPropsRelatedToSVG(property)) {
                     this._setSVGAttributes();
                     this._moveSliderRange();
@@ -1643,9 +1596,10 @@
             this._readOnly(true);
         },
         enable: function () {
-            this.options.disabled = false;
+            var options = this.options;
+            options.disabled = false;
             this.container.removeClass("rs-disabled");
-            if (!this.options.readOnly) this._readOnly(false);
+            if (!options.readOnly) this._readOnly(false);
         },
         destroy: function () {
             if (!this._getInstance()) return;
