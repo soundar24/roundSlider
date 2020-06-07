@@ -52,13 +52,13 @@
     top: 0px;
     overflow: hidden;
 }
-.rs-control .quarter div.rs-block { height: 200%; width: 200%; }
-.rs-control .half.top div.rs-block,
-.rs-control .half.bottom div.rs-block { height: 200%; width: 100%; }
-.rs-control .half.left div.rs-block,
-.rs-control .half.right div.rs-block { height: 100%; width: 200%; }
-.rs-control .bottom .rs-block { top: auto; bottom: 0; }
-.rs-control .right .rs-block { right: 0; }
+.rs-control .rs-quarter div.rs-block { height: 200%; width: 200%; }
+.rs-control .rs-half.rs-top div.rs-block,
+.rs-control .rs-half.rs-bottom div.rs-block { height: 200%; width: 100%; }
+.rs-control .rs-half.rs-left div.rs-block,
+.rs-control .rs-half.rs-right div.rs-block { height: 100%; width: 200%; }
+.rs-control .rs-bottom .rs-block { top: auto; bottom: 0; }
+.rs-control .rs-right .rs-block { right: 0; }
 .rs-block.rs-outer { border-radius: 1000px; }
 .rs-block
 {
@@ -112,11 +112,11 @@
 .rs-bar.rs-end  .rs-seperator { border-bottom: none; }
 .rs-bar.rs-start.rs-rounded .rs-seperator { border-radius: 0 0 1000px 1000px; }
 .rs-bar.rs-end.rs-rounded .rs-seperator { border-radius: 1000px 1000px 0 0; }
-.full .rs-bar, .half .rs-bar { width: 50%; }
-.half.left .rs-bar, .half.right .rs-bar, .quarter .rs-bar { width: 100%; }
-.full .rs-bar, .half.left .rs-bar, .half.right .rs-bar { top: 50%; }
-.bottom .rs-bar { top: 0; }
-.half.right .rs-bar, .quarter.right .rs-bar { right: 100%; }
+.rs-full .rs-bar, .rs-half .rs-bar { width: 50%; }
+.rs-half.rs-left .rs-bar, .rs-half.rs-right .rs-bar, .rs-quarter .rs-bar { width: 100%; }
+.rs-full .rs-bar, .rs-half.rs-left .rs-bar, .rs-half.rs-right .rs-bar { top: 50%; }
+.rs-bottom .rs-bar { top: 0; }
+.rs-half.rs-right .rs-bar, .rs-quarter.rs-right .rs-bar { right: 100%; }
 
 .rs-handle.rs-move { cursor: move; }
 .rs-readonly .rs-handle.rs-move { cursor: default; }
@@ -137,11 +137,11 @@
     position: absolute;
     top: 0;
 }
-.rs-control .bottom .rs-svg-container {
+.rs-control .rs-bottom .rs-svg-container {
     top: auto;
     bottom: 0;
 }
-.rs-control .right .rs-svg-container {
+.rs-control .rs-right .rs-svg-container {
     right: 0;
 }
 
@@ -153,31 +153,31 @@
     border: 1px solid transparent;
     z-index: 10;
 }
-.full .rs-tooltip { top: 50%; left: 50%; }
-.bottom .rs-tooltip { top: 0; } 
-.top .rs-tooltip { bottom: 0; }
-.right .rs-tooltip { left: 0; }
-.left .rs-tooltip { right: 0; }
-.half.top .rs-tooltip, .half.bottom .rs-tooltip { left: 50%; }
-.half.left .rs-tooltip, .half.right .rs-tooltip { top: 50%; }
+.rs-full .rs-tooltip { top: 50%; left: 50%; }
+.rs-bottom .rs-tooltip { top: 0; } 
+.rs-top .rs-tooltip { bottom: 0; }
+.rs-right .rs-tooltip { left: 0; }
+.rs-left .rs-tooltip { right: 0; }
+.rs-half.rs-top .rs-tooltip, .rs-half.rs-bottom .rs-tooltip { left: 50%; }
+.rs-half.rs-left .rs-tooltip, .rs-half.rs-right .rs-tooltip { top: 50%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; color: inherit; }
-.rs-tooltip.edit { padding: 5px 8px; }
-.rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
-.rs-readonly .rs-tooltip.edit:hover { border-color: transparent; cursor: default; }
+.rs-tooltip.rs-edit { padding: 5px 8px; }
+.rs-tooltip.rs-hover, .rs-tooltip.rs-edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
+.rs-readonly .rs-tooltip.rs-edit:hover { border-color: transparent; cursor: default; }
 
 /*** Fix for tooltip positioning when element in hidden state ***/
 /*** maybe in future we can consider this as the default way ***/
 .rs-tooltip.rs-center { margin: 0px !important; }
-.half.top .rs-tooltip.rs-center,
-.half.bottom .rs-tooltip.rs-center {
+.rs-half.rs-top .rs-tooltip.rs-center,
+.rs-half.rs-bottom .rs-tooltip.rs-center {
     transform: translate(-50%, 0px);
 }
-.half.left .rs-tooltip.rs-center,
-.half.right .rs-tooltip.rs-center {
+.rs-half.rs-left .rs-tooltip.rs-center,
+.rs-half.rs-right .rs-tooltip.rs-center {
     transform: translate(0px, -50%);
 }
-.full .rs-tooltip.rs-center {
+.rs-full .rs-tooltip.rs-center {
     transform: translate(-50%, -50%);
 }
 .rs-tooltip.rs-reset { margin: 0px !important; top: 0px !important; left: 0px !important; }

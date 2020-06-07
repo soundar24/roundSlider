@@ -250,25 +250,25 @@
             if (!tooltip || !o.showTooltip) return;
 
             if (o.editableTooltip) {
-                tooltip.addClass("edit");
+                tooltip.addClass("rs-edit");
                 hook = "_bind";
             }
             else {
-                tooltip.removeClass("edit");
+                tooltip.removeClass("rs-edit");
                 hook = "_unbind";
             }
             this[hook](tooltip, "click", this._editTooltip);
         },
         _editTooltip: function (e) {
             var tooltip = this.tooltip;
-            if (!tooltip.hasClass("edit") || this._isReadOnly) return;
+            if (!tooltip.hasClass("rs-edit") || this._isReadOnly) return;
             var border = parseFloat(tooltip.css("border-left-width")) * 2;
             var input = this.input = this.$createElement("input.rs-input rs-tooltip-text").css({
                 height: tooltip.outerHeight() - border,
                 width: tooltip.outerWidth() - border
             });
             this._setTooltipColor(input);
-            tooltip.html(input).removeClass("edit").addClass("hover");
+            tooltip.html(input).removeClass("rs-edit").addClass("rs-hover");
 
             input.focus().val(this._getTooltipValue(true));
 
@@ -289,7 +289,7 @@
             }
             else {
                 delete this.input;
-                this.tooltip.addClass("edit").removeClass("hover");
+                this.tooltip.addClass("rs-edit").removeClass("rs-hover");
                 this._updateTooltip();
             }
         },
@@ -315,10 +315,10 @@
         _setContainerClass: function () {
             var circleShape = this.options.circleShape;
             if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
-                this.container.addClass("full " + circleShape);
+                this.container.addClass("rs-full rs-" + circleShape);
             }
             else {
-                this.container.addClass(circleShape.split("-").join(" "));
+                this.container.addClass("rs-" + circleShape.split("-").join(" rs-"));
             }
         },
         _setRadius: function () {
@@ -1060,7 +1060,7 @@
         _updateTooltip: function () {
             var o = this.options, tooltip = this.tooltip;
             if (tooltip){
-                if (!tooltip.hasClass("hover"))
+                if (!tooltip.hasClass("rs-hover"))
                     tooltip.html(this._getTooltipValue());
                 this._updateTooltipPos();
             }
