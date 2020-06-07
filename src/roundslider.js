@@ -3,7 +3,15 @@
  * MIT license | http://roundsliderui.com/licence.html
  */
 
-(function ($, window, undefined) {
+(function(factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery'], factory);
+    } else if (typeof exports !== 'undefined') {
+        factory(require('jquery'));
+    } else {
+        factory(jQuery);
+    }
+})(function ($) {
     "use strict";
     /*jslint nomen: true */
 
@@ -233,7 +241,8 @@
             this.tooltip && this.tooltip.remove();
         },
         _setTooltipColor: function (ele) {
-            var color = this.options.tooltipColor;
+            var o = this.options, tooltipColor = o.tooltipColor;
+            var color = tooltipColor !== "inherit" ? tooltipColor : o.rangeColor;
             if (ele && color != null) ele.css("color", color);
         },
         _tooltipEditable: function () {
@@ -1481,6 +1490,7 @@
                     this._tooltipEditable();
                     this._updateTooltipPos();
                     break;
+                case "rangeColor":
                 case "tooltipColor":
                     this._setTooltipColor(this.tooltip);
                     this._setTooltipColor(this.input);
@@ -1750,4 +1760,4 @@
 
     $.fn[pluginName].prototype = RoundSlider.prototype;
 
-})(jQuery, window);
+});

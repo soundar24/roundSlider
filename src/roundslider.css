@@ -48,7 +48,8 @@
 {
     height: 100%;
     width: 100%;
-    position: relative;
+    position: absolute;
+    top: 0px;
     overflow: hidden;
 }
 .rs-control .quarter div.rs-block { height: 200%; width: 200%; }
@@ -160,7 +161,7 @@
 .half.top .rs-tooltip, .half.bottom .rs-tooltip { left: 50%; }
 .half.left .rs-tooltip, .half.right .rs-tooltip { top: 50%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
-.rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; }
+.rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; color: inherit; }
 .rs-tooltip.edit { padding: 5px 8px; }
 .rs-tooltip.hover, .rs-tooltip.edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
 .rs-readonly .rs-tooltip.edit:hover { border-color: transparent; cursor: default; }
