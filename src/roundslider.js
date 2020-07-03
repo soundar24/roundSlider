@@ -1,5 +1,5 @@
 /*!
- * roundSlider v1.6.0 | (c) 2015-2020, Soundar
+ * roundSlider v1.6.1 | (c) 2015-2020, Soundar
  * MIT license | http://roundsliderui.com/licence.html
  */
 
@@ -25,7 +25,7 @@
     RoundSlider.prototype = {
 
         pluginName: pluginName,
-        version: "1.6.0",
+        version: "1.6.1",
 
         // after the control initialization the updated default values
         // are merged into the options
