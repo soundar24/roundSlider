@@ -206,6 +206,9 @@
 .rs-handle-dot:after { background-color: #838383; }
 
 /*** SVG mode - theming - colors ***/
+.rs-path-inherited .rs-path {
+    opacity: 0.2;
+}
 .rs-svg-mode .rs-path {
     /*  this will change the slider's path color
         this can be also done via the property -> 'pathColor'  */

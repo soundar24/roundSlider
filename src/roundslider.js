@@ -860,10 +860,13 @@
                 rangeColor = o.rangeColor;
 
             if (borderColor) {
+                if (borderColor == "inherit") borderColor = rangeColor;
                 $(this.$border).css("stroke", borderColor);
             }
 
             if (pathColor) {
+                this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
+                if (pathColor == "inherit") pathColor = rangeColor;
                 $(this.$path).css("stroke", pathColor);
             }
 
