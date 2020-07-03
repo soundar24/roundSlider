@@ -148,6 +148,9 @@
             this._setValue();
             this._updateTooltipPos();
             this._bindControlEvents("_bind");
+
+            this._raiseValueChange("create");
+            this._updatePre();
         },
         _update: function () {
             this._validateSliderType();
@@ -196,7 +199,6 @@
         },
         _setProperties: function () {
             var options = this.options;
-            this._updatePre();
             this._setHandleShape();
             this._addAnimation();
             this._appendTooltip();
@@ -546,22 +548,22 @@
             return isUserAction ? false : true;
         },
         _raiseValueChange: function (action) {
-            var o = this.options, handles = [];
+            var value = this.options.value, handles = [];
             if (!this._minRange) handles.push(this._handleArgs(1)); // for range and default slider
             if (this._showRange) handles.push(this._handleArgs(2)); // for range and min-range slider
 
             var args = {
-                value: o.value,
+                value: value,
                 preValue: this._preValue,
                 action: action,
-                isUserAction: (action !== "code"),
+                isUserAction: (action !== "code" && action !== "create"),
                 isInvertedRange: this._isInvertedRange,
                 handles: handles
             };
             this._raise("valueChange", args);
 
             // once the valueChange event raised then update all the preVal flags
-            this._updatePre();
+            this._preValue = value;
         },
 
         // Events handlers
@@ -1454,6 +1456,7 @@
                         this._updateTooltip();
                         if (options.value !== this._preValue) {
                             this._raiseValueChange("code");
+                            this._updatePre();
                         }
                     }
                     break;
