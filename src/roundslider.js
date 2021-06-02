@@ -264,7 +264,7 @@
             }
             this[hook](tooltip, "click", this._editTooltip);
         },
-        _editTooltip: function (e) {
+        _editTooltip: function () {
             var tooltip = this.tooltip;
             if (!tooltip.hasClass("rs-edit") || this._isReadOnly) return;
             var border = parseFloat(tooltip.css("border-left-width")) * 2;
@@ -430,7 +430,7 @@
             if ((hs = o.handleShape) != "round") handle.addClass("rs-handle-" + hs);
             handle.attr({ "index": index, "tabIndex": "0" });
 
-            var id = this._dataElement()[0].id, id = id ? id + "_" : "";
+            var id = this._dataElement()[0].id; id = id ? id + "_" : "";
             var label = id + "handle";
             if (this._rangeSlider) label += "_" + (index == 1 ? "start" : "end");
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
@@ -637,7 +637,7 @@
                 this._raiseEvent("drag");
             }
         },
-        _handleUp: function (e) {
+        _handleUp: function () {
             this._handles().addClass("rs-move");
             this._bindMouseEvents("_unbind");
             this._addAnimation();
@@ -654,7 +654,7 @@
             }
 
             if (e.type === "blur") {
-                return
+                return;
             }
 
             // when the handle gets focus
@@ -698,7 +698,7 @@
                 this._raiseEvent("drag");
             }
         },
-        _handleKeyUp: function (e) {
+        _handleKeyUp: function () {
             this._addAnimation();
             this._raiseEvent("change");
         },
@@ -1347,14 +1347,14 @@
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
             else if (ua.indexOf('MSIE ') > 0 || ua.indexOf('Trident/') > 0) browserName = "ie";
-            else if (!!window.StyleMedia) browserName = "edge";
+            else if (window.StyleMedia) browserName = "edge";
             else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
             else if ((!!window.chrome && !!window.chrome.webstore) || (ua.indexOf('Chrome') != -1)) browserName = "chrome";
             return browserName;
         },
         _isBrowserSupported: function () {
             var properties = ["borderRadius", "WebkitBorderRadius", "MozBorderRadius",
-	            "OBorderRadius", "msBorderRadius", "KhtmlBorderRadius"];
+                "OBorderRadius", "msBorderRadius", "KhtmlBorderRadius"];
             for (var i = 0; i < properties.length; i++) {
                 if (document.body.style[properties[i]] !== undefined) return true;
             }
@@ -1558,7 +1558,7 @@
 
                     var val = options.value;
                     if (property[VALUE] !== undefined) {
-                        val = property[VALUE]
+                        val = property[VALUE];
                         delete property[VALUE];
                     }
                     this._set(VALUE, val, true);
@@ -1636,7 +1636,7 @@
         control.css('-o-transform', rotation);
         control.css('transform', rotation);
         return control;
-    }
+    };
 
     // The plugin constructor
     function RoundSlider(control, options) {
@@ -1689,7 +1689,7 @@
             centerXY + (radius * Math.cos(angleInRadians)),
             centerXY + (radius * Math.sin(angleInRadians))
         ].join(" ");
-    }
+    };
 
     RoundSlider.prototype.$drawArc = function (centerXY, radius, startAngle, endAngle, isOuter) {
         var isCircle = (endAngle - startAngle == 360);
@@ -1699,6 +1699,7 @@
         var innerDirection = isClockwise ? 0 : 1;
         var direction = isOuter ? outerDirection : innerDirection;
         var _endAngle = isOuter ? endAngle : startAngle;
+        var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
     
         var path = [];
     
@@ -1706,21 +1707,19 @@
         if (isCircle) {
             var midAngle = (startAngle + endAngle) / 2;
             var midPoint = this.$polarToCartesian(centerXY, radius, midAngle);
-            var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
             path.push(
                 "A", 1, 1, 0, 0, direction, midPoint,
                 "A", 1, 1, 0, 0, direction, endPoint
             );
         }
         else {
-            var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
             path.push(
                 "A", radius, radius, 0, largeArcFlag, direction, endPoint
             );
         }
     
         return path.join(" ");
-    }
+    };
 
     RoundSlider.prototype.$drawPath = function (centerXY, outerRadius, startAngle, endAngle, innerRadius, lineCap){
         var outerStart = this.$polarToCartesian(centerXY, outerRadius, startAngle);
@@ -1758,14 +1757,14 @@
             }
         }
         return d.join(" ");
-    }
+    };
 
     RoundSlider.prototype.$getArcLength = function (radius, degree) {
         // when degree not provided we can consider that arc as a complete circle
         if (typeof degree == "undefined") degree = 360;
         // circle's arc length formula => 2πR(Θ/360)
         return 2 * Math.PI * radius * (degree / 360);
-    }
+    };
 
     $.fn[pluginName].prototype = RoundSlider.prototype;
 

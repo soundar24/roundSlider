@@ -654,7 +654,7 @@
             }
 
             if (e.type === "blur") {
-                return
+                return;
             }
 
             // when the handle gets focus
@@ -1558,7 +1558,7 @@
 
                     var val = options.value;
                     if (property[VALUE] !== undefined) {
-                        val = property[VALUE]
+                        val = property[VALUE];
                         delete property[VALUE];
                     }
                     this._set(VALUE, val, true);
@@ -1636,7 +1636,7 @@
         control.css('-o-transform', rotation);
         control.css('transform', rotation);
         return control;
-    }
+    };
 
     // The plugin constructor
     function RoundSlider(control, options) {
@@ -1689,7 +1689,7 @@
             centerXY + (radius * Math.cos(angleInRadians)),
             centerXY + (radius * Math.sin(angleInRadians))
         ].join(" ");
-    }
+    };
 
     RoundSlider.prototype.$drawArc = function (centerXY, radius, startAngle, endAngle, isOuter) {
         var isCircle = (endAngle - startAngle == 360);
@@ -1719,7 +1719,7 @@
         }
     
         return path.join(" ");
-    }
+    };
 
     RoundSlider.prototype.$drawPath = function (centerXY, outerRadius, startAngle, endAngle, innerRadius, lineCap){
         var outerStart = this.$polarToCartesian(centerXY, outerRadius, startAngle);
@@ -1757,14 +1757,14 @@
             }
         }
         return d.join(" ");
-    }
+    };
 
     RoundSlider.prototype.$getArcLength = function (radius, degree) {
         // when degree not provided we can consider that arc as a complete circle
         if (typeof degree == "undefined") degree = 360;
         // circle's arc length formula => 2πR(Θ/360)
         return 2 * Math.PI * radius * (degree / 360);
-    }
+    };
 
     $.fn[pluginName].prototype = RoundSlider.prototype;
 

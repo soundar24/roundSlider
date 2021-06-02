@@ -8,6 +8,7 @@ const cleanCSS = require('gulp-clean-css');
 const rename = require('gulp-rename');
 const header = require("gulp-header");
 const gulpif = require('gulp-if');
+const eslint = require('gulp-eslint');
 
 const pack = () => JSON.parse(fs.readFileSync("./package.json", "utf8"));
 const pkg = pack();
@@ -47,7 +48,12 @@ function buildFiles(ext) {
         .pipe(dest('dist/'));
 }
 
+task('checkLint', () => {
+    return src(['src/*.js'])
+        .pipe(eslint())
+        .pipe(eslint.formatEach('compact', process.stderr));
+});
 task('deleteFiles', () => del(['dist/*']));
-task('build', series('deleteFiles', () => buildFiles()));
+task('build', series('deleteFiles', 'checkLint', () => buildFiles()));
 task('build_js', series(() => buildFiles('js')));
 task('build_css', series(() => buildFiles('css')));
