@@ -2,12 +2,14 @@
 const { src, dest, task, series } = require('gulp');
 const fs = require('fs');
 const del = require('del');
+const gulpif = require('gulp-if');
 const replace = require('gulp-replace');
+const postcss = require('gulp-postcss');
+const autoprefixer = require('autoprefixer');
 const uglify = require('gulp-uglify');
 const cleanCSS = require('gulp-clean-css');
 const rename = require('gulp-rename');
 const header = require("gulp-header");
-const gulpif = require('gulp-if');
 const eslint = require('gulp-eslint');
 
 const pack = () => JSON.parse(fs.readFileSync("./package.json", "utf8"));
@@ -30,6 +32,9 @@ function buildFiles(ext) {
         // replace the variables from the source files
         .pipe(replace('{VERSION}', pkg.version))
         .pipe(replace('{YEAR}', year))
+
+        // add the CSS vendor prefixes (Browserslist config will be loaded from '.browserslistrc' file)
+        .pipe(gulpif(isCSS, postcss([autoprefixer()])))
 
         // move the unminified version of source files to dist folder, for development purpose
         .pipe(dest('dist/'))

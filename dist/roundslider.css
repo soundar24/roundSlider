@@ -8,12 +8,11 @@
 
 .rs-ie, .rs-edge, .rs-handle {
     -ms-touch-action: none;
-    touch-action: none;
+        touch-action: none;
 }
 .rs-control { position: relative; outline: 0 none; }
 .rs-container { position: relative; }
 .rs-control *, .rs-control *:before, .rs-control *:after {
-    -webkit-box-sizing: border-box;
     box-sizing: border-box;
 }
 .rs-animation .rs-transition
@@ -23,25 +22,24 @@
 .rs-bar
 {
     -webkit-transform-origin: 100% 50%;
-    -ms-transform-origin: 100% 50%;
-    transform-origin: 100% 50%;
+        -ms-transform-origin: 100% 50%;
+            transform-origin: 100% 50%;
 }
 .rs-control .rs-split .rs-path,
 .rs-control .rs-overlay1,
 .rs-control .rs-overlay2
 {
     -webkit-transform-origin: 50% 100%;
-    -ms-transform-origin: 50% 100%;
-    transform-origin: 50% 100%;
+        -ms-transform-origin: 50% 100%;
+            transform-origin: 50% 100%;
 }
 .rs-control .rs-overlay
 {
     -webkit-transform-origin: 100% 100%;
-    -ms-transform-origin: 100% 100%;
-    transform-origin: 100% 100%;
+        -ms-transform-origin: 100% 100%;
+            transform-origin: 100% 100%;
 }
 .rs-rounded .rs-seperator, .rs-split .rs-path {
-    -webkit-background-clip: padding-box; 
     background-clip: padding-box;
 }
 .rs-disabled {
@@ -174,14 +172,20 @@
 .rs-tooltip.rs-center { margin: 0px !important; }
 .rs-half.rs-top .rs-tooltip.rs-center,
 .rs-half.rs-bottom .rs-tooltip.rs-center {
-    transform: translate(-50%, 0px);
+    -webkit-transform: translate(-50%, 0px);
+        -ms-transform: translate(-50%, 0px);
+            transform: translate(-50%, 0px);
 }
 .rs-half.rs-left .rs-tooltip.rs-center,
 .rs-half.rs-right .rs-tooltip.rs-center {
-    transform: translate(0px, -50%);
+    -webkit-transform: translate(0px, -50%);
+        -ms-transform: translate(0px, -50%);
+            transform: translate(0px, -50%);
 }
 .rs-full .rs-tooltip.rs-center {
-    transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
 }
 .rs-tooltip.rs-reset { margin: 0px !important; top: 0px !important; left: 0px !important; }
 
