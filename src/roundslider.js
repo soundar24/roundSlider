@@ -66,11 +66,11 @@
             startValue: null,
 
             // SVG related properties
-            svgMode: false,
+            svgMode: true,
             borderWidth: 1,
-            borderColor: null,
-            pathColor: null,
-            rangeColor: null,
+            borderColor: "#AAAAAA",
+            pathColor: "#FFFFFF",
+            rangeColor: "#54BBE0",
             tooltipColor: null,
 
             // events

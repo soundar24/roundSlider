@@ -203,19 +203,3 @@
 .rs-path-inherited .rs-path {
     opacity: 0.2;
 }
-.rs-svg-mode .rs-path {
-    /*  this will change the slider's path color
-        this can be also done via the property -> 'pathColor'  */
-    stroke: #FFFFFF;
-}
-.rs-svg-mode .rs-range {
-    /*  this will change the slider's range color
-        this can be also done via the property -> 'rangeColor'  */
-    stroke: #54BBE0;
-}
-.rs-svg-mode .rs-border {
-    /*  this will change the slider's border color
-        this can be also done via the property -> 'borderColor'
-        the border width can be changed via the property -> 'borderWidth'  */
-    stroke: #AAAAAA;
-}
