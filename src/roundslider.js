@@ -71,6 +71,7 @@
             borderColor: "#AAAAAA",
             pathColor: "#FFFFFF",
             rangeColor: "#54BBE0",
+            handleColor: null,
             tooltipColor: null,
 
             // events
@@ -203,6 +204,7 @@
         _setProperties: function () {
             var options = this.options;
             this._setHandleShape();
+            this._setHandleColor();
             this._addAnimation();
             this._appendTooltip();
             if (!options.showTooltip) this._removeTooltip();
@@ -304,6 +306,11 @@
             if (type == "dot") allHandles.addClass("rs-handle-dot");
             else if (type == "square") allHandles.addClass("rs-handle-square");
             else options.handleShape = "round";
+        },
+        _setHandleColor: function () {
+            var o = this.options, handleColor = o.handleColor;
+            if (handleColor == "inherit") handleColor = o.rangeColor;
+            this._handles().css("background", handleColor);
         },
         _setHandleValue: function (index) {
             this._active = index;
@@ -862,20 +869,18 @@
                 pathColor = o.pathColor,
                 rangeColor = o.rangeColor;
 
-            if (borderColor) {
-                if (borderColor == "inherit") borderColor = rangeColor;
-                $(this.$border).css("stroke", borderColor);
-            }
+            if (borderColor == "inherit") borderColor = rangeColor;
+            $(this.$border).css("stroke", borderColor);
 
-            if (pathColor) {
-                this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
-                if (pathColor == "inherit") pathColor = rangeColor;
-                $(this.$path).css("stroke", pathColor);
-            }
+            this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
+            if (pathColor == "inherit") pathColor = rangeColor;
+            $(this.$path).css("stroke", pathColor);
 
-            if (this._showRange && rangeColor) {
+            if (this._showRange) {
                 $(this.$range).css("stroke", rangeColor);
             }
+
+            this._setHandleColor();
         },
         _moveSliderRange: function (isInit) {
             if (!this._showRange) return;
@@ -930,7 +935,7 @@
             return this._hasProperty(property, svgRelatedProps);
         },
         _isPropsRelatedToSVGStyles: function (property) {
-            var svgStylesRelatedProps = ["borderColor", "pathColor", "rangeColor"];
+            var svgStylesRelatedProps = ["borderColor", "pathColor", "rangeColor", "handleColor"];
             return this._hasProperty(property, svgStylesRelatedProps);
         },
         _hasProperty: function (property, list) {
