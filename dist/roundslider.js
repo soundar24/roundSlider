@@ -57,7 +57,7 @@
             keyboardAction: true,
             mouseScrollAction: false,
             lineCap: "butt",
-            sliderType: "default",
+            sliderType: "min-range",
             circleShape: "full",
             handleShape: "round",
             // the 'startValue' property decides at which point the slider should start.
