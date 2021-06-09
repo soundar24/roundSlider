@@ -204,7 +204,6 @@
         _setProperties: function () {
             var options = this.options;
             this._setHandleShape();
-            this._setHandleColor();
             this._addAnimation();
             this._appendTooltip();
             if (!options.showTooltip) this._removeTooltip();
@@ -300,17 +299,31 @@
                 this._updateTooltip();
             }
         },
-        _setHandleShape: function () {
-            var options = this.options, type = options.handleShape, allHandles = this._handles();
-            allHandles.removeClass("rs-handle-dot rs-handle-square");
-            if (type == "dot") allHandles.addClass("rs-handle-dot");
-            else if (type == "square") allHandles.addClass("rs-handle-square");
-            else options.handleShape = "round";
+        _setHandleShape: function (preShape) {
+            var o = this.options, shape = o.handleShape, prefix = "rs-handle-", allHandles = this._handles();
+
+            allHandles
+                .removeClass(prefix + preShape)
+                .addClass(prefix + shape);
+
+            if (shape == "dot") allHandles.append(this.$createElement("div." + prefix + shape + "-inner"));
+            else allHandles.empty();
+
+            this._setHandleColor();
         },
         _setHandleColor: function () {
-            var o = this.options, handleColor = o.handleColor;
+            var o = this.options, handleColor = o.handleColor, shape = o.handleShape, allHandles = this._handles();
             if (handleColor == "inherit") handleColor = o.rangeColor;
-            this._handles().css("background", handleColor);
+
+            if (shape == "dot") {
+                allHandles
+                    .css({ "border-color": handleColor, "background": "" })
+                    .children().css("background", handleColor);
+            }
+            else {
+                allHandles
+                    .css({ "border-color": "", "background": handleColor });
+            }
         },
         _setHandleValue: function (index) {
             this._active = index;
@@ -433,9 +446,8 @@
             this._endLine.rsRotate(this._start + this._end);
         },
         _createHandle: function (index) {
-            var handle = this.$createElement("div.rs-handle rs-move"), o = this.options, hs;
-            if ((hs = o.handleShape) != "round") handle.addClass("rs-handle-" + hs);
-            handle.attr({ "index": index, "tabIndex": "0" });
+            var handle = this.$createElement("div.rs-handle rs-move");
+            handle.attr({ "index": index, "tabindex": "0" });
 
             var id = this._dataElement()[0].id; id = id ? id + "_" : "";
             var label = id + "handle";
@@ -490,6 +502,20 @@
             if (this._minRange) return this.bar;
             index = (index != undefined) ? index : this._active;
             return $(this._handleBars()[index - 1]);
+        },
+        _updateHandleBar: function ($handle) {
+            this.bar = $handle.parent();
+            this._active = parseFloat($handle.attr("index"));
+        },
+        _getHandleEle: function ($target) {
+            if ($target.hasClass("rs-handle"))
+                return $target;
+
+            // this is for the "dot" handleShape, where the handle having the child element also
+            var $parent = $target.parent();
+            if ($parent.hasClass("rs-handle"))
+                return $parent;
+            return null;
         },
         _handleArgs: function (index) {
             index = (index != undefined) ? index : this._active;
@@ -579,10 +605,11 @@
         // Events handlers
         _elementDown: function (e) {
             if (this._isReadOnly) return;
-            var $target = $(e.target);
+            var $handleEle = this._getHandleEle($(e.target));
 
-            if ($target.hasClass("rs-handle")) {
-                this._handleDown(e);
+            if ($handleEle) {
+                e.preventDefault();
+                this._handleDown($handleEle);
             }
             else {
                 var point = this._getXY(e), center = this._getCenterPoint();
@@ -622,14 +649,11 @@
                 }
             }
         },
-        _handleDown: function (e) {
-            e.preventDefault();
-            var $target = $(e.target);
-            $target.focus();
+        _handleDown: function ($handle) {
+            $handle.focus();
             this._removeAnimation();
             this._bindMouseEvents("_bind");
-            this.bar = $target.parent();
-            this._active = parseFloat($target.attr("index"));
+            this._updateHandleBar($handle);
             this._handles().removeClass("rs-move");
             this._raise("start", { value: this.options.value, "handle": this._handleArgs() });
         },
@@ -665,10 +689,9 @@
             }
 
             // when the handle gets focus
-            var $target = $(e.target);
-            $target.addClass("rs-focus");
-            this.bar = $target.parent();
-            this._active = parseFloat($target.attr("index"));
+            var $handle = $(e.target);
+            $handle.addClass("rs-focus");
+            this._updateHandleBar($handle);
             if (keyboardActionEnabled) {
                 this._bindKeyboardEvents("_bind");
             }
@@ -747,11 +770,14 @@
         },
         _updateActiveHandle: function (e) {
             var $target = $(e.target);
-            if ($target.hasClass("rs-handle") && $target.parent().parent()[0] == this.control[0]) {
-                this.bar = $target.parent();
-                this._active = parseFloat($target.attr("index"));
+            var $handleEle = this._getHandleEle($target);
+
+            if ($handleEle && $target.parents(".rs-control")[0] == this.control[0]) {
+                this._updateHandleBar($handleEle);
             }
-            if (!this.bar.find(".rs-handle").hasClass("rs-focus")) this.bar.find(".rs-handle").focus();
+            // get the updated handle again and focus that
+            var $handle = this.bar.children();
+            if (!$handle.hasClass("rs-focus")) $handle.focus();
         },
 
         // Events binding
@@ -1445,7 +1471,8 @@
 
             var options = this.options;
             this._preValue = options.value;
-            if (!forceSet && options[property] === value) return;
+            var prePropValue = options[property];
+            if (!forceSet && prePropValue === value) return;
             options[property] = value;
 
             switch (property) {
@@ -1492,7 +1519,7 @@
                     this._refreshHandle();
                     break;
                 case "handleShape":
-                    this._setHandleShape();
+                    this._setHandleShape(prePropValue);
                     break;
                 case "animation":
                     options.animation ? this._addAnimation() : this._removeAnimation();

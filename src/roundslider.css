@@ -177,16 +177,16 @@
 .rs-tooltip.rs-reset { margin: 0px !important; top: 0px !important; left: 0px !important; }
 
 /*** handle types ***/
-.rs-handle { border-radius: 1000px; outline: 0 none; float: left; }
+.rs-handle {
+    border-radius: 1000px; outline: 0 none; float: left; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .rs-handle.rs-handle-square { border-radius: 0px; }
-.rs-handle-dot { border: 1px solid #AAAAAA; padding: 6px; }
-.rs-handle-dot:after {
-    display: block;
-    content: "";
-    border: 1px solid #AAAAAA;
-    height: 100%;
-    width: 100%;
+.rs-handle-dot-inner {
     border-radius: 1000px;
+    padding: 20%;
 }
 
 /*** theming - colors ***/
@@ -195,9 +195,10 @@
 .rs-path-color { background-color: #FFFFFF; }
 .rs-range-color { background-color: #54BBE0; }
 .rs-bg-color { background-color: #FFFFFF; }
+
 .rs-handle { background-color: #838383; }
-.rs-handle-dot { background-color: #FFFFFF; }
-.rs-handle-dot:after { background-color: #838383; }
+.rs-handle-dot { background-color: #f3f3f3; border: 1px solid #838383; }
+.rs-handle-dot-inner { background-color: #838383; }
 
 /*** SVG mode - theming - colors ***/
 .rs-path-inherited .rs-path {
