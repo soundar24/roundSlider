@@ -446,7 +446,7 @@
             this._endLine.rsRotate(this._start + this._end);
         },
         _createHandle: function (index) {
-            var handle = this.$createElement("div.rs-handle rs-move");
+            var handle = this.$createElement("div.rs-handle");
             handle.attr({ "index": index, "tabindex": "0" });
 
             var id = this._dataElement()[0].id; id = id ? id + "_" : "";
@@ -654,7 +654,7 @@
             this._removeAnimation();
             this._bindMouseEvents("_bind");
             this._updateHandleBar($handle);
-            this._handles().removeClass("rs-move");
+            this.control.addClass("rs-dragging");
             this._raise("start", { value: this.options.value, "handle": this._handleArgs() });
         },
         _handleMove: function (e) {
@@ -669,7 +669,7 @@
             }
         },
         _handleUp: function () {
-            this._handles().addClass("rs-move");
+            this.control.removeClass("rs-dragging");
             this._bindMouseEvents("_unbind");
             this._addAnimation();
             this._raiseEvent("change");

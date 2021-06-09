@@ -112,8 +112,6 @@
 .rs-bottom .rs-bar { top: 0; }
 .rs-half.rs-right .rs-bar, .rs-quarter.rs-right .rs-bar { right: 100%; }
 
-.rs-handle.rs-move { cursor: move; }
-.rs-readonly .rs-handle.rs-move { cursor: default; }
 .rs-classic-mode .rs-path { display: block; height: 100%; width: 100%; }
 .rs-split .rs-path
 {
@@ -157,8 +155,8 @@
 .rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; color: inherit; }
 .rs-tooltip.rs-edit { padding: 5px 8px; }
-.rs-tooltip.rs-hover, .rs-tooltip.rs-edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
-.rs-readonly .rs-tooltip.rs-edit:hover { border-color: transparent; cursor: default; }
+.rs-tooltip.rs-hover,
+.rs-control:not(.rs-dragging) .rs-container:not(.rs-readonly) .rs-tooltip.rs-edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
 
 /*** Fix for tooltip positioning when element in hidden state ***/
 /*** maybe in future we can consider this as the default way ***/
@@ -183,6 +181,8 @@
     align-items: center;
     justify-content: center;
 }
+.rs-control:not(.rs-dragging) .rs-container:not(.rs-readonly) .rs-handle { cursor: move; }
+
 .rs-handle.rs-handle-square { border-radius: 0px; }
 .rs-handle-dot-inner {
     border-radius: 1000px;
@@ -197,7 +197,7 @@
 .rs-bg-color { background-color: #FFFFFF; }
 
 .rs-handle { background-color: #838383; }
-.rs-handle-dot { background-color: #f3f3f3; border: 1px solid #838383; }
+.rs-handle-dot { background-color: #fff; border: 1px solid #838383; }
 .rs-handle-dot-inner { background-color: #838383; }
 
 /*** SVG mode - theming - colors ***/
