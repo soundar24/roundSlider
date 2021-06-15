@@ -256,25 +256,25 @@
             if (!tooltip || !o.showTooltip) return;
 
             if (o.editableTooltip) {
-                tooltip.addClass("rs-edit");
+                tooltip.addClass("rs-editable");
                 hook = "_bind";
             }
             else {
-                tooltip.removeClass("rs-edit");
+                tooltip.removeClass("rs-editable");
                 hook = "_unbind";
             }
             this[hook](tooltip, "click", this._editTooltip);
         },
         _editTooltip: function () {
             var tooltip = this.tooltip;
-            if (!tooltip.hasClass("rs-edit") || this._isReadOnly) return;
+            if (!tooltip.hasClass("rs-editable") || this._isReadOnly) return;
             var border = parseFloat(tooltip.css("border-left-width")) * 2;
             var input = this.input = this.$createElement("input.rs-input rs-tooltip-text").css({
                 height: tooltip.outerHeight() - border,
                 width: tooltip.outerWidth() - border
             });
             this._setTooltipColor(input);
-            tooltip.html(input).removeClass("rs-edit").addClass("rs-hover");
+            tooltip.html(input).removeClass("rs-editable").addClass("rs-hover");
 
             input.focus().val(this._getTooltipValue(true));
 
@@ -295,7 +295,7 @@
             }
             else {
                 delete this.input;
-                this.tooltip.addClass("rs-edit").removeClass("rs-hover");
+                this.tooltip.addClass("rs-editable").removeClass("rs-hover");
                 this._updateTooltip();
             }
         },
@@ -542,11 +542,11 @@
                 this._updateTooltip();
 
                 var _handle = this._handleArgs();
-                this._raise(event, { value: currentValue, preValue: preValue, "handle": _handle });
+                this._raise(event, { preValue: preValue, "handle": _handle });
 
                 if (currentValue != this._preValue) {
                     // whenever the drag and change event happens, at that time trigger 'update' also
-                    this._raise("update", { value: currentValue, preValue: preValue, "handle": _handle, action: event });
+                    this._raise("update", { preValue: preValue, "handle": _handle, action: event });
 
                     // after the "update" event trigger the "valueChange" event
                     this._raiseValueChange(event);
@@ -655,7 +655,7 @@
             this._bindMouseEvents("_bind");
             this._updateHandleBar($handle);
             this.control.addClass("rs-dragging");
-            this._raise("start", { value: this.options.value, "handle": this._handleArgs() });
+            this._raise("start", { "handle": this._handleArgs() });
         },
         _handleMove: function (e) {
             e.preventDefault();
@@ -673,7 +673,7 @@
             this._bindMouseEvents("_unbind");
             this._addAnimation();
             this._raiseEvent("change");
-            this._raise("stop", { value: this.options.value, "handle": this._handleArgs() });
+            this._raise("stop", { "handle": this._handleArgs() });
         },
         _handleFocus: function (e) {
             if (this._isReadOnly) return;
@@ -1239,15 +1239,18 @@
             var o = this.options, circle = o.circleShape, startAngle = o.startAngle, endAngle = o.endAngle;
 
             if (circle != "full") {
-                if (circle.indexOf("quarter") != -1) endAngle = "+90";
-                else if (circle.indexOf("half") != -1) endAngle = "+180";
+                var QUARTER = "quarter", HALF = "half", 
+                    TOP = "-top", BOTTOM = "-bottom", LEFT = "-left", RIGHT = "-right";
+
+                if (circle.indexOf(QUARTER) != -1) endAngle = "+90";
+                else if (circle.indexOf(HALF) != -1) endAngle = "+180";
                 else if (circle == "pie") endAngle = "+270";
                 o.endAngle = endAngle;
 
-                if (circle == "quarter-top-left" || circle == "half-top") startAngle = 0;
-                else if (circle == "quarter-top-right" || circle == "half-right") startAngle = 90;
-                else if (circle == "quarter-bottom-right" || circle == "half-bottom") startAngle = 180;
-                else if (circle == "quarter-bottom-left" || circle == "half-left") startAngle = 270;
+                if (circle == QUARTER + TOP + LEFT || circle == HALF + TOP) startAngle = 0;
+                else if (circle == QUARTER + TOP + RIGHT || circle == HALF + RIGHT) startAngle = 90;
+                else if (circle == QUARTER + BOTTOM + RIGHT || circle == HALF + BOTTOM) startAngle = 180;
+                else if (circle == QUARTER + BOTTOM + LEFT || circle == HALF + LEFT) startAngle = 270;
                 o.startAngle = startAngle;
             }
         },
@@ -1279,20 +1282,21 @@
             if (parts.length == 1 && this.isNumber(parts[0])) parts = [o.min, parts[0]];
             else if (parts.length >= 2 && !this.isNumber(parts[1])) parts[1] = o.max;
 
+            var _this = this, parseModelValue = function (value) {
+                return _this.isNumber(value) ? parseFloat(value) : _this._defaultValue();
+            };
+
             if (this._rangeSlider) {
                 newValue = [
-                    this._parseModelValue(parts[0]),
-                    this._parseModelValue(parts[1])
+                    parseModelValue(parts[0]),
+                    parseModelValue(parts[1])
                 ].toString();
             }
             else {
                 var lastValue = parts.pop();
-                newValue = this._parseModelValue(lastValue);
+                newValue = parseModelValue(lastValue);
             }
             o.value = newValue;
-        },
-        _parseModelValue: function (value) {
-            return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
         },
         _validateModelValue: function () {
             var o = this.options, val = o.value;
@@ -1393,12 +1397,16 @@
         },
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
-            args = args || { value: o.value };
+            args = args || {};
 
             // default event arguments
             args["id"] = this.id;
             args["control"] = this.control;
             args["options"] = o;
+            args["$this"] = this;
+            if (!args.hasOwnProperty("value")) {
+                args["value"] = o.value;
+            }
 
             if (fn) {
                 args["type"] = event;
@@ -1412,10 +1420,10 @@
             return val;
         },
         _bind: function (element, _event, handler) {
-            $(element).bind(_event, $.proxy(handler, this));
+            $(element).on(_event, $.proxy(handler, this));
         },
         _unbind: function (element, _event, handler) {
-            $(element).unbind(_event, $.proxy(handler, this));
+            $(element).off(_event, $.proxy(handler, this));
         },
         _getInstance: function () {
             return $.data(this._dataElement()[0], pluginName);
@@ -1676,7 +1684,9 @@
         this.control = $(control);
 
         // the options value holds the updated defaults value
-        this.options = $.extend({}, this.defaults, options);
+        this.options = $.extend(
+            {}, this.defaults, typeof options === "object" ? options : {}
+        );
     }
 
     // The plugin wrapper, prevents multiple instantiations
@@ -1694,6 +1704,7 @@
                     _this._raise("create");
                 }
                 else _this._removeData();
+                instance = _this;
             }
             else if ($.isPlainObject(options)) {
                 if (typeof instance.option === "function") instance.option(options);
@@ -1701,12 +1712,22 @@
                     window[that.id].option(options);
                 }
             }
-            else if (typeof options === "string") {
-                if (typeof instance[options] === "function") {
-                    if ((options === "option" || options.indexOf("get") === 0) && args[2] === undefined) {
-                        return instance[options](args[1]);
-                    }
-                    instance[options](args[1], args[2]);
+            if (typeof options === "string") {
+                if (args[0] === "option") {
+                    Array.prototype.shift.call(args);
+                }
+                var prop = args[0];
+
+                if (instance.options.hasOwnProperty(prop)) {
+                    var value = args[1], returnVal = instance.option(prop, value);
+                    if (value === undefined) return returnVal;
+                }
+                else if (typeof instance[prop] === "function") {
+                    var returnVal = instance[prop](args[1], args[2]);
+                    if (prop.indexOf("get") === 0) return returnVal;
+                }
+                else if ($.isPlainObject(prop)) {
+                    instance.option(prop);
                 }
             }
         }
