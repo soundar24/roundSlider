@@ -841,14 +841,13 @@
 
         // SVG related functionalities
         _createSVGElements: function () {
-            var svgEle = this.$createSVG("svg");
+            var svgEle = this.$svgEle = this.$createSVG("svg");
             var PATH = "path.rs-transition ";
-            var pathAttr = { fill: "transparent" };
 
-            this.$path = this.$createSVG(PATH + "rs-path", pathAttr);
-            this.$range = this._showRange ? this.$createSVG(PATH + "rs-range", pathAttr) : null;
-            this.$border = this.$createSVG(PATH + "rs-border", pathAttr);
-            this.$append(svgEle, [this.$path, this.$range, this.$border]);
+            this.$pathEle = this.$createSVG(PATH + "rs-path");
+            this.$rangeEle = this._showRange ? this.$createSVG(PATH + "rs-range") : null;
+            this.$borderEle = this.$createSVG(PATH + "rs-border");
+            this._append(svgEle, [this.$pathEle, this.$rangeEle, this.$borderEle]);
 
             this.svgContainer = this.$createElement("div.rs-svg-container")
                 .append(svgEle)
@@ -860,34 +859,39 @@
                 lineCap = o.lineCap;
             var outerRadius = radius - (border / 2),
                 innerRadius = outerRadius - width - border;
+            this.centerRadius = radius - border - (width / 2);
+
             var startAngle = this._start,
-                totalAngle = this._end,
-                endAngle = startAngle + totalAngle;
+                endAngle = startAngle + this._end;
+
+            this.svgPathLength = this._getArcLength(this.centerRadius);
 
             // draw the path for border element
-            var border_d = this.$drawPath(radius, outerRadius, startAngle, endAngle, innerRadius, lineCap);
-            this.$setAttribute(this.$border, {
+            var border_d = this.$drawPath(startAngle, endAngle, outerRadius, innerRadius, lineCap);
+            this.$setAttribute(this.$borderEle, {
                 "d": border_d
             });
             // and set the border width
-            $(this.$border).css("stroke-width", border);
+            $(this.$borderEle).css("stroke-width", border);
 
-            var pathRadius = radius - border - (width / 2);
-            this.svgPathLength = this.$getArcLength(pathRadius, totalAngle);
-            var d = this.$drawPath(radius, pathRadius, startAngle, endAngle);
+            var d = this.$drawPath(startAngle, endAngle, this.centerRadius);
             var attr = { "d": d, "stroke-width": width, "stroke-linecap": lineCap };
 
             // draw the path for slider path element
-            this.$setAttribute(this.$path, attr);
+            this.$setAttribute(this.$pathEle, attr);
 
             if (this._showRange) {
                 // draw the path for slider range element
-                this.$setAttribute(this.$range, attr);
+                this.$setAttribute(this.$rangeEle, attr);
 
                 // there was a small bug when lineCap was round/square, this will solve that
-                if (lineCap == "round" || lineCap == "square") this.$range.setAttribute("stroke-dashoffset", "0.01");
-                else this.$range.removeAttribute("stroke-dashoffset");
+                if (lineCap == "round" || lineCap == "square") this.$rangeEle.setAttribute("stroke-dashoffset", "0.01");
+                else this.$rangeEle.removeAttribute("stroke-dashoffset");
             }
+        },
+        _getArcLength: function (radius) {
+            // circle's arc length formula => 2πR(Θ/360)
+            return 2 * Math.PI * radius * (this._end / 360);
         },
         _setSVGStyles: function () {
             var o = this.options,
@@ -896,14 +900,14 @@
                 rangeColor = o.rangeColor;
 
             if (borderColor == "inherit") borderColor = rangeColor;
-            $(this.$border).css("stroke", borderColor);
+            $(this.$borderEle).css("stroke", borderColor);
 
             this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
             if (pathColor == "inherit") pathColor = rangeColor;
-            $(this.$path).css("stroke", pathColor);
+            $(this.$pathEle).css("stroke", pathColor);
 
             if (this._showRange) {
-                $(this.$range).css("stroke", rangeColor);
+                $(this.$rangeEle).css("stroke", rangeColor);
             }
 
             this._setHandleColor();
@@ -954,7 +958,7 @@
             var handle2Distance = ((handle2Angle - handle1Angle) / totalAngle) * this.svgPathLength;
             dashArray.push(handle2Distance, this.svgPathLength);
 
-            this.$range.style.strokeDasharray = dashArray.join(" ");
+            this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
         _isPropsRelatedToSVG: function (property) {
             var svgRelatedProps = ["radius", "borderWidth", "width", "lineCap", "startAngle", "endAngle"];
@@ -1168,7 +1172,7 @@
                 }
                 end = parseFloat(end);
             }
-            else end = 360;
+            else end = start + 360;
 
             end %= 360;
             if (end <= start) end += 360;
@@ -1346,10 +1350,14 @@
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
         $createSVG: function (tag, attr) {
-            var t = tag.split('.');
-            var svgEle = document.createElementNS("http://www.w3.org/2000/svg", t[0]);
-            if (t[1]) {
+            var t = tag.split('.'), tagName = t[0], className = t[1];
+            var svgEle = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+            if (className) {
                 svgEle.setAttribute("class", t[1]);
+            }
+            if (tagName == "path") {
+                attr = (attr || {});
+                attr["fill"] = "transparent";
             }
             if (attr) {
                 this.$setAttribute(svgEle, attr);
@@ -1367,7 +1375,7 @@
             }
             return ele;
         },
-        $append: function (parent, children) {
+        _append: function (parent, children) {
             children.forEach(function(element) {
                 element && parent.appendChild(element);
             });
@@ -1404,7 +1412,7 @@
             args["control"] = this.control;
             args["options"] = o;
             args["$this"] = this;
-            if (!args.hasOwnProperty("value")) {
+            if (!Object.prototype.hasOwnProperty.call(args, "value")) {
                 args["value"] = o.value;
             }
 
@@ -1716,14 +1724,15 @@
                 if (args[0] === "option") {
                     Array.prototype.shift.call(args);
                 }
-                var prop = args[0];
+                var prop = args[0], returnVal;
 
-                if (instance.options.hasOwnProperty(prop)) {
-                    var value = args[1], returnVal = instance.option(prop, value);
+                if (Object.prototype.hasOwnProperty.call(instance.options, prop)) {
+                    var value = args[1];
+                    returnVal = instance.option(prop, value);
                     if (value === undefined) return returnVal;
                 }
                 else if (typeof instance[prop] === "function") {
-                    var returnVal = instance[prop](args[1], args[2]);
+                    returnVal = instance[prop](args[1], args[2]);
                     if (prop.indexOf("get") === 0) return returnVal;
                 }
                 else if ($.isPlainObject(prop)) {
@@ -1735,8 +1744,9 @@
     }
 
     // ### SVG related logic
-    RoundSlider.prototype.$polarToCartesian = function (centerXY, radius, angleInDegrees) {
+    RoundSlider.prototype._polarToCartesian = function (radius, angleInDegrees) {
         var angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+        var centerXY = this.options.radius;
     
         return [
             centerXY + (radius * Math.cos(angleInRadians)),
@@ -1744,22 +1754,31 @@
         ].join(" ");
     };
 
-    RoundSlider.prototype.$drawArc = function (centerXY, radius, startAngle, endAngle, isOuter) {
+    RoundSlider.prototype._drawArc = function (startAngle, endAngle, radius, isReverseDirection) {
+        var actualEndAngle = endAngle;
+        if (startAngle > endAngle) {
+            endAngle += 360;
+        }
+
+        // For inverted range (and consider semi circle), the range should start from the Start angle
+        // and will end in the slider end. And again start with the slider start and ends with the End angle
+        var isInvertedRange = (this._oriAngle(endAngle) > this._end);
+        if (isInvertedRange) {
+            endAngle = this._start + this._end;
+        }
+    
         var isCircle = (endAngle - startAngle == 360);
         var largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
-        var isClockwise = true;
-        var outerDirection = isClockwise ? 1 : 0;
-        var innerDirection = isClockwise ? 0 : 1;
-        var direction = isOuter ? outerDirection : innerDirection;
-        var _endAngle = isOuter ? endAngle : startAngle;
-        var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
+        var direction = isReverseDirection ? 0 : 1;
+        var _endAngle = isReverseDirection ?  startAngle : endAngle;
+        var endPoint = this._polarToCartesian(radius, _endAngle);
     
         var path = [];
     
         // if it is a perfect circle then draw two half circles, otherwise draw arc
         if (isCircle) {
             var midAngle = (startAngle + endAngle) / 2;
-            var midPoint = this.$polarToCartesian(centerXY, radius, midAngle);
+            var midPoint = this._polarToCartesian(radius, midAngle);
             path.push(
                 "A", 1, 1, 0, 0, direction, midPoint,
                 "A", 1, 1, 0, 0, direction, endPoint
@@ -1769,14 +1788,26 @@
             path.push(
                 "A", radius, radius, 0, largeArcFlag, direction, endPoint
             );
+    
+            if (isInvertedRange) {
+                var sliderStartAngle = this._start;
+                var sliderStartPoint = this._polarToCartesian(radius, sliderStartAngle);
+    
+                path.push(
+                    "M " + sliderStartPoint,
+                    this._drawArc(sliderStartAngle, actualEndAngle, radius)
+                );
+            }
         }
     
         return path.join(" ");
     };
 
-    RoundSlider.prototype.$drawPath = function (centerXY, outerRadius, startAngle, endAngle, innerRadius, lineCap){
-        var outerStart = this.$polarToCartesian(centerXY, outerRadius, startAngle);
-        var outerArc = this.$drawArc(centerXY, outerRadius, startAngle, endAngle, true);          // draw outer circle
+    RoundSlider.prototype.$drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
+        if (outerRadius == undefined) outerRadius = this.centerRadius;
+
+        var outerStart = this._polarToCartesian(outerRadius, startAngle);
+        var outerArc = this._drawArc(startAngle, endAngle, outerRadius);          // draw outer circle
     
         var d = [
             "M " + outerStart,
@@ -1784,8 +1815,8 @@
         ];
     
         if (innerRadius) {
-            var innerEnd = this.$polarToCartesian(centerXY, innerRadius, endAngle);
-            var innerArc = this.$drawArc(centerXY, innerRadius, startAngle, endAngle, false);     // draw inner circle
+            var innerEnd = this._polarToCartesian(innerRadius, endAngle);
+            var innerArc = this._drawArc(startAngle, endAngle, innerRadius, true);     // draw inner circle
             
             if (lineCap == "none") {
                 d.push(
@@ -1804,19 +1835,11 @@
                 d.push(
                     "L " + innerEnd,
                     innerArc,
-                    "L " + outerStart,
-                    "Z"
+                    "L " + outerStart
                 );
             }
         }
         return d.join(" ");
-    };
-
-    RoundSlider.prototype.$getArcLength = function (radius, degree) {
-        // when degree not provided we can consider that arc as a complete circle
-        if (typeof degree == "undefined") degree = 360;
-        // circle's arc length formula => 2πR(Θ/360)
-        return 2 * Math.PI * radius * (degree / 360);
     };
 
     $.fn[pluginName].prototype = RoundSlider.prototype;
