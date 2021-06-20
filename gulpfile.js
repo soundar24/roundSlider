@@ -28,7 +28,7 @@ const isJavaScript = file => file.extname === '.js';
 const isCSS = file => file.extname === '.css';
 
 function buildFiles(ext) {
-    return src([`src/*.${ext || '*'}`])
+    return src([`src/*.${ext}`])
         // replace the variables from the source files
         .pipe(replace('{VERSION}', pkg.version))
         .pipe(replace('{YEAR}', year))
@@ -53,12 +53,12 @@ function buildFiles(ext) {
         .pipe(dest('dist/'));
 }
 
-task('checkLint', () => {
+task('lint', () => {
     return src(['src/*.js'])
         .pipe(eslint())
         .pipe(eslint.formatEach('compact', process.stderr));
 });
 task('deleteFiles', () => del(['dist/*']));
-task('build', series('deleteFiles', 'checkLint', () => buildFiles()));
-task('build_js', series(() => buildFiles('js')));
+task('build_js', series('lint', () => buildFiles('js')));
 task('build_css', series(() => buildFiles('css')));
+task('build', series('deleteFiles', 'build_js', 'build_css'));
