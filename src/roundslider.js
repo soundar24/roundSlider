@@ -68,6 +68,7 @@
             // SVG related properties
             svgMode: true,
             borderWidth: 1,
+            borderVisibility: "both",
             borderColor: "#AAAAAA",
             pathColor: "#FFFFFF",
             rangeColor: "#54BBE0",
@@ -97,7 +98,7 @@
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
                     "keyboardAction", "mouseScrollAction", "svgMode"],
-                stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
+                stringType: ["sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
             };
         },
         
@@ -856,7 +857,7 @@
         _setSVGAttributes: function () {
             var o = this.options, radius = o.radius, 
                 border = o.borderWidth, width = o.width,
-                lineCap = o.lineCap;
+                lineCap = o.lineCap, borderStyle = o.borderVisibility;
             var outerRadius = radius - (border / 2),
                 innerRadius = outerRadius - width - border;
             this.centerRadius = radius - border - (width / 2);
@@ -866,12 +867,15 @@
 
             this.svgPathLength = this._getArcLength(this.centerRadius);
 
+            if (borderStyle === "outer") innerRadius = outerRadius;
+            else if (borderStyle === "inner") outerRadius = innerRadius;
+
             // draw the path for border element
-            var border_d = this.$drawPath(startAngle, endAngle, outerRadius, innerRadius, lineCap);
+            var border_d = this.$drawPath(startAngle, endAngle, outerRadius, innerRadius);
             this.$setAttribute(this.$borderEle, {
                 "d": border_d
             });
-            // and set the border width
+            // and set the border width in css styles, since it shouldn't be overwritten by other styles
             $(this.$borderEle).css("stroke-width", border);
 
             var d = this.$drawPath(startAngle, endAngle, this.centerRadius);
@@ -961,7 +965,7 @@
             this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
         _isPropsRelatedToSVG: function (property) {
-            var svgRelatedProps = ["radius", "borderWidth", "width", "lineCap", "startAngle", "endAngle"];
+            var svgRelatedProps = ["radius", "borderWidth", "borderVisibility", "width", "lineCap", "startAngle", "endAngle"];
             return this._hasProperty(property, svgRelatedProps);
         },
         _isPropsRelatedToSVGStyles: function (property) {
@@ -1805,6 +1809,7 @@
 
     RoundSlider.prototype.$drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
         if (outerRadius == undefined) outerRadius = this.centerRadius;
+        if (lineCap == undefined) lineCap = this.options.lineCap;
 
         var outerStart = this._polarToCartesian(outerRadius, startAngle);
         var outerArc = this._drawArc(startAngle, endAngle, outerRadius);          // draw outer circle
@@ -1814,7 +1819,7 @@
             outerArc
         ];
     
-        if (innerRadius) {
+        if (innerRadius && innerRadius !== outerRadius) {
             var innerEnd = this._polarToCartesian(innerRadius, endAngle);
             var innerArc = this._drawArc(startAngle, endAngle, innerRadius, true);     // draw inner circle
             
@@ -1835,7 +1840,8 @@
                 d.push(
                     "L " + innerEnd,
                     innerArc,
-                    "L " + outerStart
+                    "L " + outerStart,
+                    "Z"
                 );
             }
         }
