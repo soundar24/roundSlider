@@ -69,8 +69,8 @@
             svgMode: true,
             borderWidth: 1,
             borderVisibility: "both",
-            borderColor: "#AAAAAA",
-            pathColor: "#FFFFFF",
+            borderColor: "#AAA",
+            pathColor: "#FFF",
             rangeColor: "#54BBE0",
             handleColor: null,
             tooltipColor: null,
@@ -117,7 +117,7 @@
             if (this.control.is("input")) {
                 this._isInputType = true;
                 this._hiddenField = this.control;
-                this.control = this.$createElement("div");
+                this.control = this._createElement("div");
                 this.control.insertAfter(this._hiddenField);
                 options.value = this._hiddenField.val() || options.value;
             }
@@ -132,15 +132,15 @@
             this._render();
         },
         _initialize: function () {
-            var browserName = this.browserName = this.getBrowserName();
+            var browserName = this.browserName = this._getBrowserName();
             if (browserName) this.control.addClass("rs-" + browserName);
             this._isReadOnly = false;
             this._checkDataType();
             this._refreshCircleShape();
         },
         _render: function () {
-            this.container = this.$createElement("div.rs-container");
-            this.innerContainer = this.$createElement("div.rs-inner-container");
+            this.container = this._createElement("div.rs-container");
+            this.innerContainer = this._createElement("div.rs-inner-container");
             this.container.append(this.innerContainer);
             var $rootCSS = "rs-control " + (this.options.svgMode ? "rs-svg-mode" : "rs-classic-mode");
             this.control.addClass($rootCSS).empty().append(this.container);
@@ -175,11 +175,11 @@
                 return;
             }
 
-            this.block = this.$createElement("div.rs-block rs-outer rs-border");
+            this.block = this._createElement("div.rs-block rs-outer rs-border");
             this.innerContainer.append(this.block);
 
             var padd = options.width, start = this._start, path;
-            path = this.$createElement("div.rs-path rs-transition");
+            path = this._createElement("div.rs-path rs-transition");
 
             if (this._showRange) {
                 this.block1 = path.clone().addClass("rs-range-color").rsRotate(start);
@@ -191,8 +191,8 @@
             }
             else this.block.append(path.addClass("rs-path-color"));
 
-            this.lastBlock = this.$createElement("span.rs-block").css({ "padding": padd });
-            this.innerBlock = this.$createElement("div.rs-inner rs-bg-color rs-border");
+            this.lastBlock = this._createElement("span.rs-block").css({ "padding": padd });
+            this.innerBlock = this._createElement("div.rs-inner rs-bg-color rs-border");
             this.lastBlock.append(this.innerBlock);
             this.block.append(this.lastBlock);
         },
@@ -237,7 +237,7 @@
         },
         _appendTooltip: function () {
             if (this.container.children(".rs-tooltip").length !== 0) return;
-            var tooltip = this.tooltip = this.$createElement("span.rs-tooltip rs-tooltip-text");
+            var tooltip = this.tooltip = this._createElement("span.rs-tooltip rs-tooltip-text");
             this.container.append(tooltip);
             this._setTooltipColor(tooltip);
             this._tooltipEditable();
@@ -270,7 +270,7 @@
             var tooltip = this.tooltip;
             if (!tooltip.hasClass("rs-editable") || this._isReadOnly) return;
             var border = parseFloat(tooltip.css("border-left-width")) * 2;
-            var input = this.input = this.$createElement("input.rs-input rs-tooltip-text").css({
+            var input = this.input = this._createElement("input.rs-input rs-tooltip-text").css({
                 height: tooltip.outerHeight() - border,
                 width: tooltip.outerWidth() - border
             });
@@ -307,7 +307,7 @@
                 .removeClass(prefix + preShape)
                 .addClass(prefix + shape);
 
-            if (shape == "dot") allHandles.append(this.$createElement("div." + prefix + shape + "-inner"));
+            if (shape == "dot") allHandles.append(this._createElement("div." + prefix + shape + "-inner"));
             else allHandles.empty();
 
             this._setHandleColor();
@@ -423,8 +423,8 @@
             this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
-            var line = this.$createElement("span.rs-seperator rs-border");
-            var lineWrap = this.$createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
+            var line = this._createElement("span.rs-seperator rs-border");
+            var lineWrap = this._createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
             this.container.append(lineWrap);
             return lineWrap;
         },
@@ -447,7 +447,7 @@
             this._endLine.rsRotate(this._start + this._end);
         },
         _createHandle: function (index) {
-            var handle = this.$createElement("div.rs-handle");
+            var handle = this._createElement("div.rs-handle");
             handle.attr({ "index": index, "tabindex": "0" });
 
             var id = this._dataElement()[0].id; id = id ? id + "_" : "";
@@ -456,7 +456,7 @@
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
             var handleDefaults = this._handleDefaults();
-            var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
+            var bar = this._createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
             bar.addClass(this._rangeSlider && index == 2 ? "rs-second" : "rs-first");
             // at initial creation keep the handle and bar at the default angle position
             bar.rsRotate(handleDefaults.angle);
@@ -470,23 +470,23 @@
             return handle;
         },
         _refreshHandle: function () {
-            var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, isNumber = this.isNumber;
-            if (typeof hSize === "string" && isNumber(hSize)) {
+            var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, _isNumber = this._isNumber;
+            if (typeof hSize === "string" && _isNumber(hSize)) {
                 if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
                     hSize = width + parseFloat(hSize);
                 }
                 else if (hSize.indexOf(",")) {
                     var s = hSize.split(",");
-                    if (isNumber(s[0]) && isNumber(s[1])) w = parseFloat(s[0]), h = parseFloat(s[1]), isSquare = false;
+                    if (_isNumber(s[0]) && _isNumber(s[1])) w = parseFloat(s[0]), h = parseFloat(s[1]), isSquare = false;
                 }
             }
-            if (isSquare) h = w = isNumber(hSize) ? parseFloat(hSize) : width;
+            if (isSquare) h = w = _isNumber(hSize) ? parseFloat(hSize) : width;
             var diff = (width + this._border() - w) / 2;
             this._handles().css({ height: h, width: w, "margin": -h / 2 + "px 0 0 " + diff + "px" });
         },
         _defaultValue: function () {
             var o = this.options, startValue = o.startValue;
-            var defaultValue = this.isNumber(startValue) ? this._limitValue(startValue) : o.min;
+            var defaultValue = this._isNumber(startValue) ? this._limitValue(startValue) : o.min;
             return defaultValue;
         },
         _handleDefaults: function () {
@@ -842,15 +842,15 @@
 
         // SVG related functionalities
         _createSVGElements: function () {
-            var svgEle = this.$svgEle = this.$createSVG("svg");
+            var svgEle = this.$svgEle = this._createSVG("svg");
             var PATH = "path.rs-transition ";
 
-            this.$pathEle = this.$createSVG(PATH + "rs-path");
-            this.$rangeEle = this._showRange ? this.$createSVG(PATH + "rs-range") : null;
-            this.$borderEle = this.$createSVG(PATH + "rs-border");
+            this.$pathEle = this._createSVG(PATH + "rs-path");
+            this.$rangeEle = this._showRange ? this._createSVG(PATH + "rs-range") : null;
+            this.$borderEle = this._createSVG(PATH + "rs-border");
             this._append(svgEle, [this.$pathEle, this.$rangeEle, this.$borderEle]);
 
-            this.svgContainer = this.$createElement("div.rs-svg-container")
+            this.svgContainer = this._createElement("div.rs-svg-container")
                 .append(svgEle)
                 .appendTo(this.innerContainer);
         },
@@ -871,22 +871,22 @@
             else if (borderStyle === "inner") outerRadius = innerRadius;
 
             // draw the path for border element
-            var border_d = this.$drawPath(startAngle, endAngle, outerRadius, innerRadius);
-            this.$setAttribute(this.$borderEle, {
+            var border_d = this._drawPath(startAngle, endAngle, outerRadius, innerRadius);
+            this._setAttribute(this.$borderEle, {
                 "d": border_d
             });
             // and set the border width in css styles, since it shouldn't be overwritten by other styles
             $(this.$borderEle).css("stroke-width", border);
 
-            var d = this.$drawPath(startAngle, endAngle, this.centerRadius);
+            var d = this._drawPath(startAngle, endAngle, this.centerRadius);
             var attr = { "d": d, "stroke-width": width, "stroke-linecap": lineCap };
 
             // draw the path for slider path element
-            this.$setAttribute(this.$pathEle, attr);
+            this._setAttribute(this.$pathEle, attr);
 
             if (this._showRange) {
                 // draw the path for slider range element
-                this.$setAttribute(this.$rangeEle, attr);
+                this._setAttribute(this.$rangeEle, attr);
 
                 // there was a small bug when lineCap was round/square, this will solve that
                 if (lineCap == "round" || lineCap == "square") this.$rangeEle.setAttribute("stroke-dashoffset", "0.01");
@@ -899,9 +899,9 @@
         },
         _setSVGStyles: function () {
             var o = this.options,
-                borderColor = o.borderColor,
-                pathColor = o.pathColor,
-                rangeColor = o.rangeColor;
+                borderColor = o.borderColor || "",
+                pathColor = o.pathColor || "",
+                rangeColor = o.rangeColor || "";
 
             if (borderColor == "inherit") borderColor = rangeColor;
             $(this.$borderEle).css("stroke", borderColor);
@@ -1032,7 +1032,7 @@
             }
             else if (isDrag) {
                 var d = this._handleDragDistance;
-                if (this.isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
+                if (this._isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
             }
             return angle;
         },
@@ -1093,7 +1093,7 @@
             return angle;
         },
         _appendHiddenField: function () {
-            var hiddenField = this._hiddenField = this._hiddenField || this.$createElement("input");
+            var hiddenField = this._hiddenField = this._hiddenField || this._createElement("input");
             hiddenField.attr({
                 "type": "hidden", "name": this._dataElement()[0].id || ""
             });
@@ -1163,14 +1163,14 @@
         },
         _validateStartAngle: function () {
             var options = this.options, start = options.startAngle;
-            start = (this.isNumber(start) ? parseFloat(start) : 0) % 360;
+            start = (this._isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
             options.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
             var o = this.options, start = o.startAngle, end = o.endAngle;
-            if (this.isNumber(end)) {
+            if (this._isNumber(end)) {
                 if (typeof end === "string" && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
                     end = start + parseFloat(end);
                 }
@@ -1208,7 +1208,7 @@
         _checkOverlay: function (cls, angle) {
             var overlay = this.container.children(cls);
             if (overlay.length == 0) {
-                overlay = this.$createElement("div" + cls + " rs-transition rs-bg-color");
+                overlay = this._createElement("div" + cls + " rs-transition rs-bg-color");
                 this.container.append(overlay);
             }
             overlay.rsRotate(this._start + angle);
@@ -1218,7 +1218,7 @@
             // to check number datatype
             for (i in props.numberType) {
                 prop = props.numberType[i], value = m[prop];
-                if (!this.isNumber(value)) m[prop] = this.defaults[prop];
+                if (!this._isNumber(value)) m[prop] = this.defaults[prop];
                 else m[prop] = parseFloat(value);
             }
             // to check input string
@@ -1287,11 +1287,11 @@
             var o = this.options, val = o.value, newValue;
             if (val instanceof Array) val = val.toString();
             var parts = (typeof val == "string") ? val.split(",") : [val];
-            if (parts.length == 1 && this.isNumber(parts[0])) parts = [o.min, parts[0]];
-            else if (parts.length >= 2 && !this.isNumber(parts[1])) parts[1] = o.max;
+            if (parts.length == 1 && this._isNumber(parts[0])) parts = [o.min, parts[0]];
+            else if (parts.length >= 2 && !this._isNumber(parts[1])) parts[1] = o.max;
 
             var _this = this, parseModelValue = function (value) {
-                return _this.isNumber(value) ? parseFloat(value) : _this._defaultValue();
+                return _this._isNumber(value) ? parseFloat(value) : _this._defaultValue();
             };
 
             if (this._rangeSlider) {
@@ -1349,11 +1349,11 @@
         },
 
         // common core methods
-        $createElement: function (tag) {
+        _createElement: function (tag) {
             var t = tag.split('.');
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
-        $createSVG: function (tag, attr) {
+        _createSVG: function (tag, attr) {
             var t = tag.split('.'), tagName = t[0], className = t[1];
             var svgEle = document.createElementNS("http://www.w3.org/2000/svg", tagName);
             if (className) {
@@ -1364,11 +1364,11 @@
                 attr["fill"] = "transparent";
             }
             if (attr) {
-                this.$setAttribute(svgEle, attr);
+                this._setAttribute(svgEle, attr);
             }
             return svgEle;
         },
-        $setAttribute: function (ele, attr) {
+        _setAttribute: function (ele, attr) {
             for (var key in attr) {
                 var val = attr[key];
                 if (key === "class") {
@@ -1385,11 +1385,11 @@
             });
             return parent;
         },
-        isNumber: function (number) {
+        _isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
         },
-        getBrowserName: function () {
+        _getBrowserName: function () {
             var browserName = "", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
@@ -1472,14 +1472,11 @@
             if (bool) this.container.addClass("rs-readonly");
         },
 
-        // get & set for the properties
-        _get: function (property) {
-            return this.options[property];
-        },
-        _set: function (property, value, forceSet) {
+        // dynamic property set
+        _setProp: function (property, value, forceSet) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
-                if (!this.isNumber(value)) return;
+                if (!this._isNumber(value)) return;
                 value = parseFloat(value);
             }
             else if ($.inArray(property, props.booleanType) != -1) {    // to check boolean datatype
@@ -1551,6 +1548,9 @@
                     this._tooltipEditable();
                     this._updateTooltipPos();
                     break;
+                case "tooltipFormat":
+                    this._updateTooltip();
+                    break;
                 case "rangeColor":
                 case "tooltipColor":
                     this._setTooltipColor(this.tooltip);
@@ -1590,6 +1590,12 @@
 
         // public methods
         option: function (property, value) {
+            this.set(property, value);
+        },
+        get: function (property) {
+            return this.options[property];
+        },
+        set: function (property, value) {
             if (!property || !this._getInstance()) return;
 
             var options = this.options;
@@ -1613,15 +1619,15 @@
                         val = property[VALUE];
                         delete property[VALUE];
                     }
-                    this._set(VALUE, val, true);
+                    this._setProp(VALUE, val, true);
                 }
                 for (var prop in property) {
-                    this._set(prop, property[prop]);
+                    this._setProp(prop, property[prop]);
                 }
             }
             else if (typeof property == "string") {
-                if (value === undefined) return this._get(property);
-                this._set(property, value);
+                if (value === undefined) return this.get(property);
+                this._setProp(property, value);
             }
 
             // whenever the properties set dynamically, check for SVG mode. also check
@@ -1639,23 +1645,23 @@
             return this;
         },
         getValue: function (index) {
-            if (this._rangeSlider && this.isNumber(index)) {
+            if (this._rangeSlider && this._isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
             }
-            return this._get("value");
+            return this.get("value");
         },
         setValue: function (value, index) {
-            if (this.isNumber(value)) {
-                if (this.isNumber(index)) {
+            if (this._isNumber(value)) {
+                if (this._isNumber(index)) {
                     if (this._rangeSlider) {
                         var i = parseFloat(index), val = parseFloat(value);
                         value = this._formRangeValue(val, i);
                     }
                     else if (!this._minRange) this._active = index;
                 }
-                this._set("value", value);
+                this._setProp("value", value);
             }
         },
         refreshTooltip: function () {
@@ -1719,9 +1725,9 @@
                 instance = _this;
             }
             else if ($.isPlainObject(options)) {
-                if (typeof instance.option === "function") instance.option(options);
+                if (typeof instance.option === "function") instance.set(options);
                 else if (that.id && window[that.id] && typeof window[that.id].option === "function") {
-                    window[that.id].option(options);
+                    window[that.id].set(options);
                 }
             }
             if (typeof options === "string") {
@@ -1732,7 +1738,7 @@
 
                 if (Object.prototype.hasOwnProperty.call(instance.options, prop)) {
                     var value = args[1];
-                    returnVal = instance.option(prop, value);
+                    returnVal = instance.set(prop, value);
                     if (value === undefined) return returnVal;
                 }
                 else if (typeof instance[prop] === "function") {
@@ -1740,7 +1746,7 @@
                     if (prop.indexOf("get") === 0) return returnVal;
                 }
                 else if ($.isPlainObject(prop)) {
-                    instance.option(prop);
+                    instance.set(prop);
                 }
             }
         }
@@ -1807,7 +1813,7 @@
         return path.join(" ");
     };
 
-    RoundSlider.prototype.$drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
+    RoundSlider.prototype._drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
         if (outerRadius == undefined) outerRadius = this.centerRadius;
         if (lineCap == undefined) lineCap = this.options.lineCap;
 
