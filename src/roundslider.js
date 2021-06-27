@@ -161,6 +161,7 @@
             this._validateSliderType();
             this._updateStartEnd();
             this._validateStartEnd();
+            this._active = 1;
             this._handle1 = this._handle2 = this._handleDefaults();
             this._analyzeModelValue();
             this._validateModelValue();
@@ -897,6 +898,11 @@
             // circle's arc length formula => 2πR(Θ/360)
             return 2 * Math.PI * radius * (this._end / 360);
         },
+        _getArcAngle: function (arc_length, radius) {
+            if (radius == undefined) radius = this.centerRadius;
+            // derive the angle formula from arc length, so => Θ = (arc_length * 360) / (2 * Math.PI * radius)
+            return (arc_length * 360) / (2 * Math.PI * radius);
+        },
         _setSVGStyles: function () {
             var o = this.options,
                 borderColor = o.borderColor || "",
@@ -1027,7 +1033,16 @@
                 o_preAngle = this._oriAngle(preAngle);
 
             if (o_angle > this._end) {
-                if (!isDrag) return preAngle;
+                if (!isDrag) {
+                    var o = this.options;
+                    if (o.lineCap === "round" || o.lineCap === "square") {
+                        var lineCapLength = (o.width / 2) + o.borderWidth;
+                        var bufferAngle = this._getArcAngle(lineCapLength);
+                        if (o_angle < this._end + bufferAngle) return this._end + this._start;
+                        else if (o_angle > 360 - bufferAngle) return this._start;
+                    }
+                    return preAngle;
+                }
                 angle = this._start + (o_preAngle <= this._end - o_preAngle ? 0 : this._end);
             }
             else if (isDrag) {
@@ -1440,19 +1455,12 @@
         _getInstance: function () {
             return $.data(this._dataElement()[0], pluginName);
         },
-        _saveInstanceOnElement: function () {
-            $.data(this.control[0], pluginName, this);
-        },
-        _saveInstanceOnID: function () {
-            var id = this.id;
-            if (id && typeof window[id] !== "undefined") 
-                window[id] = this;
+        _saveInstanceOnElement: function (ele) {
+            $.data(ele, pluginName, this);
         },
         _removeData: function () {
             var control = this._dataElement()[0];
             $.removeData && $.removeData(control, pluginName);
-            if (control.id && typeof window[control.id]["_init"] === "function") 
-                delete window[control.id];
         },
         _destroyControl: function () {
             if (this._isInputType) this._dataElement().insertAfter(this.control).attr("type", "text");
@@ -1703,8 +1711,16 @@
 
         // the options value holds the updated defaults value
         this.options = $.extend(
-            {}, this.defaults, typeof options === "object" ? options : {}
+            {}, this.defaults, $.isPlainObject(options) ? options : {}
         );
+
+        this._saveInstanceOnElement(control);
+				
+        if (this._raise("beforeCreate") !== false) {
+            this._init();
+            this._raise("create");
+        }
+        else this._removeData();
     }
 
     // The plugin wrapper, prevents multiple instantiations
@@ -1713,23 +1729,12 @@
         for (var i = 0; i < this.length; i++) {
             var that = this[i], instance = $.data(that, pluginName);
             if (!instance) {
-                var _this = new RoundSlider(that, options);
-                _this._saveInstanceOnElement();
-                _this._saveInstanceOnID();
-				
-                if (_this._raise("beforeCreate") !== false) {
-                    _this._init();
-                    _this._raise("create");
-                }
-                else _this._removeData();
-                instance = _this;
+                instance = new RoundSlider(that, options);
             }
             else if ($.isPlainObject(options)) {
-                if (typeof instance.option === "function") instance.set(options);
-                else if (that.id && window[that.id] && typeof window[that.id].option === "function") {
-                    window[that.id].set(options);
-                }
+                instance.set(options);
             }
+
             if (typeof options === "string") {
                 if (args[0] === "option") {
                     Array.prototype.shift.call(args);
@@ -1814,8 +1819,9 @@
     };
 
     RoundSlider.prototype._drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
+        var o = this.options;
         if (outerRadius == undefined) outerRadius = this.centerRadius;
-        if (lineCap == undefined) lineCap = this.options.lineCap;
+        if (lineCap == undefined) lineCap = o.lineCap;
 
         var outerStart = this._polarToCartesian(outerRadius, startAngle);
         var outerArc = this._drawArc(startAngle, endAngle, outerRadius);          // draw outer circle
@@ -1829,10 +1835,12 @@
             var innerEnd = this._polarToCartesian(innerRadius, endAngle);
             var innerArc = this._drawArc(startAngle, endAngle, innerRadius, true);     // draw inner circle
             
-            if (lineCap == "none") {
+            if (lineCap == "butt") {
                 d.push(
-                    "M " + innerEnd,
-                    innerArc
+                    "L " + innerEnd,
+                    innerArc,
+                    "L " + outerStart,
+                    "Z"
                 );
             }
             else if (lineCap == "round") {
@@ -1842,12 +1850,43 @@
                     "A 1, 1, 0, 0, 1, " + outerStart
                 );
             }
-            else if (lineCap == "butt" || lineCap == "square") {
+            else if (lineCap == "square") {
+                // drawing the square lineCap is little tricky. We have the inner and outer start, end points only.
+                // from those points we have to identify the square's other corner points. But those points won't available in
+                // the circle's path (not in the outer and inner radius), it's over the straight line from those points.
+                // 1) So we have to find the outer and inner square end's radius (r), using Pythagorean Theorem
+                // 2) Based on that radius we have to find the angle of those points (θ)
+                // 3) Then you can easily convert those Polar Coordinates (r,θ) to Cartesian Coordinates (x,y)
+                var lineCapLength = (o.width + o.borderWidth) / 2;
+                var outerRadiusSQR = Math.pow(outerRadius, 2),
+                    innerRadiusSQR = Math.pow(innerRadius, 2),
+                    lineCapLengthSQR = Math.pow(lineCapLength, 2);
+
+                // Pythagorean Theorem => c = √(a2+b2)
+                var squareOuterRadius = Math.sqrt(outerRadiusSQR + lineCapLengthSQR);
+                var squareInnerRadius = Math.sqrt(innerRadiusSQR + lineCapLengthSQR);
+
+                var squareOuterAngle = this._getArcAngle(lineCapLength, squareOuterRadius);
+                var squareInnerAngle = this._getArcAngle(lineCapLength, squareInnerRadius);
+
+                var endSquare_OuterCorner = this._polarToCartesian(squareOuterRadius, endAngle + squareOuterAngle);
+                var endSquare_InnerCorner = this._polarToCartesian(squareInnerRadius, endAngle + squareInnerAngle);
+                var startSquare_OuterCorner = this._polarToCartesian(squareOuterRadius, startAngle - squareOuterAngle);
+                var startSquare_InnerCorner = this._polarToCartesian(squareInnerRadius, startAngle - squareInnerAngle);
+
                 d.push(
+                    "L " + endSquare_OuterCorner, "L " + endSquare_InnerCorner,
                     "L " + innerEnd,
                     innerArc,
+                    "L " + startSquare_InnerCorner, "L " + startSquare_OuterCorner,
                     "L " + outerStart,
                     "Z"
+                );
+            }
+            else if (lineCap == "none") {
+                d.push(
+                    "M " + innerEnd,
+                    innerArc
                 );
             }
         }
