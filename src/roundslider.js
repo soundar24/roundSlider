@@ -98,7 +98,7 @@
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
                     "keyboardAction", "mouseScrollAction", "svgMode"],
-                stringType: ["sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
+                stringType: ["value", "handleSize", "endAngle", "sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
             };
         },
         
@@ -164,7 +164,6 @@
             this._active = 1;
             this._handle1 = this._handle2 = this._handleDefaults();
             this._analyzeModelValue();
-            this._validateModelValue();
         },
         _createLayers: function () {
             var options = this.options;
@@ -216,15 +215,6 @@
         _updatePre: function () {
             this._prechange = this._predrag = this._pre_bvc = this._preValue = this.options.value;
         },
-        _backupPreValue: function () {
-            this._pre_handle1 = this._handle1;
-            this._pre_handle2 = this._handle2;
-        },
-        _revertPreValue: function () {
-            this._handle1 = this._pre_handle1;
-            this._handle2 = this._pre_handle2;
-            this._updateModelValue();
-        },
         _setValue: function () {
             if (this._rangeSlider) {
                 this._setHandleValue(1);
@@ -237,7 +227,6 @@
             }
         },
         _appendTooltip: function () {
-            if (this.container.children(".rs-tooltip").length !== 0) return;
             var tooltip = this.tooltip = this._createElement("span.rs-tooltip rs-tooltip-text");
             this.container.append(tooltip);
             this._setTooltipColor(tooltip);
@@ -245,13 +234,14 @@
             this._updateTooltip();
         },
         _removeTooltip: function () {
-            if (this.container.children(".rs-tooltip").length == 0) return;
             this.tooltip && this.tooltip.remove();
+            delete this.tooltip;
         },
         _setTooltipColor: function (ele) {
-            var o = this.options, tooltipColor = o.tooltipColor;
-            var color = tooltipColor !== "inherit" ? tooltipColor : o.rangeColor;
-            if (ele && color != null) ele.css("color", color);
+            if (!ele) return;
+            var o = this.options, tooltipColor = o.tooltipColor || "";
+            if (tooltipColor == "inherit") tooltipColor = o.rangeColor;
+            ele.css("color", tooltipColor);
         },
         _tooltipEditable: function () {
             var o = this.options, tooltip = this.tooltip, hook;
@@ -284,7 +274,7 @@
         },
         _focusOut: function (e) {
             if (e.type == "change") {
-                var val = this.input.val().replace("-", ",");
+                var val = this.input.val().trim().replace("-", ",");
                 if (val[0] == ",") {
                     val = "-" + val.slice(1).replace("-", ",");
                 }
@@ -314,7 +304,7 @@
             this._setHandleColor();
         },
         _setHandleColor: function () {
-            var o = this.options, handleColor = o.handleColor, shape = o.handleShape, allHandles = this._handles();
+            var o = this.options, handleColor = o.handleColor || "", shape = o.handleShape, allHandles = this._handles();
             if (handleColor == "inherit") handleColor = o.rangeColor;
 
             if (shape == "dot") {
@@ -340,13 +330,15 @@
             this.control.removeClass("rs-animation");
         },
         _setContainerClass: function () {
-            var circleShape = this.options.circleShape;
-            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
-                this.container.addClass("rs-full rs-" + circleShape);
+            var circleShape = this.options.circleShape,
+                prefix = " rs-", className = prefix;
+
+            if (this._isFullCircle) {
+                className += circleShape + " rs-full";
             }
-            else {
-                this.container.addClass("rs-" + circleShape.split("-").join(" rs-"));
-            }
+            else className += circleShape.split("-").join(prefix);
+
+            this.container.addClass(className);
         },
         _setRadius: function () {
             var o = this.options, r = o.radius, d = r * 2, circleShape = o.circleShape;
@@ -356,8 +348,7 @@
             // whenever the radius changes, before update the container size
             // check for the lineCap also, since that will make some additional size
             // also, based on that need to align the handle bars
-            var isFullCircle = (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0);
-            if (o.svgMode && !isFullCircle) {
+            if (o.svgMode && !this._isFullCircle) {
                 var handleBars = this._handleBars();
                 if (o.lineCap != "none") {
                     extraSize = (o.lineCap === "butt") ? (o.borderWidth / 2) : ((o.width / 2) + o.borderWidth);
@@ -462,28 +453,13 @@
             // at initial creation keep the handle and bar at the default angle position
             bar.rsRotate(handleDefaults.angle);
             this.container.append(bar);
-            this._refreshHandle();
+            this._updateHandleSize();
 
             this.bar = bar;
             this._active = index;
             if (index != 1 && index != 2) this["_handle" + index] = handleDefaults;
             this._bind(handle, "focus blur", this._handleFocus);
             return handle;
-        },
-        _refreshHandle: function () {
-            var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, _isNumber = this._isNumber;
-            if (typeof hSize === "string" && _isNumber(hSize)) {
-                if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
-                    hSize = width + parseFloat(hSize);
-                }
-                else if (hSize.indexOf(",")) {
-                    var s = hSize.split(",");
-                    if (_isNumber(s[0]) && _isNumber(s[1])) w = parseFloat(s[0]), h = parseFloat(s[1]), isSquare = false;
-                }
-            }
-            if (isSquare) h = w = _isNumber(hSize) ? parseFloat(hSize) : width;
-            var diff = (width + this._border() - w) / 2;
-            this._handles().css({ height: h, width: w, "margin": -h / 2 + "px 0 0 " + diff + "px" });
         },
         _defaultValue: function () {
             var o = this.options, startValue = o.startValue;
@@ -1005,7 +981,7 @@
             else this.bar.children().attr({ "aria-valuemin": min, "aria-valuemax": max });
         },
         _getDistance: function (p1, p2) {
-            return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+            return Math.sqrt(Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2));
         },
         _getXY: function (e) {
             if (e.type.indexOf("mouse") == -1) e = (e.originalEvent || e).changedTouches[0];
@@ -1053,11 +1029,13 @@
         },
         _processStepByAngle: function (angle) {
             var value = this._angleToValue(angle);
-            return this._processStepByValue(value);
+            var updatedValue = this._processStepByValue(value);
+            var updatedAngle = this._valueToAngle(updatedValue);
+            return { value: updatedValue, angle: updatedAngle };
         },
         _processStepByValue: function (value) {
             var o = this.options, min = o.min, max = o.max, step = o.step, isMinHigher = (min > max);
-            var remain, currVal, nextVal, preVal, newVal, ang;
+            var remain, currVal, nextVal, preVal, newVal;
             
             step = (isMinHigher ? -step : step);
             remain = (value - min) % step;
@@ -1074,8 +1052,8 @@
                 if (value <= currVal) newVal = (currVal - value < value - nextVal) ? currVal : nextVal;
                 else newVal = (value - currVal > preVal - value) ? currVal : preVal;
             }
-            newVal = this._round(newVal), ang = this._valueToAngle(newVal);
-            return { value: newVal, angle: ang };
+            newVal = this._round(newVal);
+            return newVal;
         },
         _round: function (val) {
             var s = this.options.step.toString().split(".");
@@ -1150,7 +1128,7 @@
                     marginLeft = -(tooltip.outerWidth() / 2);   // the previous styles so that we can get the proper values.
                 tooltip.removeClass("rs-reset");
 
-                if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
+                if (this._isFullCircle) {
                     pos = { "margin-top": marginTop, "margin-left": marginLeft };
                 }
                 else if (circleShape == "half-top" || circleShape == "half-bottom") {
@@ -1177,37 +1155,51 @@
             return (returnValue != null && typeof returnValue !== "boolean") ? returnValue : value;
         },
         _validateStartAngle: function () {
-            var options = this.options, start = options.startAngle;
+            var o = this.options, start = o.startAngle;
             start = (this._isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
-            options.startAngle = start;
+            o.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
-            var o = this.options, start = o.startAngle, end = o.endAngle;
-            if (this._isNumber(end)) {
-                if (typeof end === "string" && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
-                    end = start + parseFloat(end);
-                }
-                end = parseFloat(end);
-            }
-            else end = start + 360;
-
+            var o = this.options, start = o.startAngle;
+            var end = this._calcRelativeValue(o.endAngle, start);
             end %= 360;
             if (end <= start) end += 360;
             return end;
         },
+        _updateHandleSize: function () {
+            var o = this.options, sliderWidth = o.width;
+            var size = o.handleSize.split(",");
+            var width = this._calcRelativeValue(size[0], sliderWidth);
+            var height = size[1] ? this._calcRelativeValue(size[1], sliderWidth) : width;
+
+            var diff = (sliderWidth + this._border() - width) / 2;
+            this._handles().css({ height: height, width: width, "margin": -height / 2 + "px 0 0 " + diff + "px" });
+        },
+        _calcRelativeValue: function (strValue, baseValue) {
+            var value = parseFloat(strValue);
+            if (this._isNumber(strValue)) {
+                if (strValue.charAt(0) === "+" || strValue.charAt(0) === "-") {
+                    value += baseValue;
+                }
+            }
+            else value = baseValue;
+            return value;
+        },
         _refreshCircleShape: function () {
             var options = this.options, circleShape = options.circleShape;
-            var allCircelShapes = ["half-top", "half-bottom", "half-left", "half-right",
-                "quarter-top-left", "quarter-top-right", "quarter-bottom-right", "quarter-bottom-left",
-                "pie", "custom-half", "custom-quarter"];
+            var fullCirclesShapes = ["full", "pie", "custom-half", "custom-quarter"];
+            var otherShapes = ["half-top", "half-bottom", "half-left", "half-right",
+                "quarter-top-left", "quarter-top-right", "quarter-bottom-right", "quarter-bottom-left"];
+            var allCircelShapes = fullCirclesShapes.concat(otherShapes);
 
             if (allCircelShapes.indexOf(circleShape) == -1) {
                 if (circleShape == "half") circleShape = "half-top";
                 else if (circleShape == "quarter") circleShape = "quarter-top-left";
                 else circleShape = "full";
             }
+            this._isFullCircle = (fullCirclesShapes.indexOf(circleShape) !== -1);
             options.circleShape = circleShape;
         },
         _appendOverlay: function () {
@@ -1229,33 +1221,19 @@
             overlay.rsRotate(this._start + angle);
         },
         _checkDataType: function () {
-            var m = this.options, i, prop, value, props = this._props();
-            // to check number datatype
-            for (i in props.numberType) {
-                prop = props.numberType[i], value = m[prop];
-                if (!this._isNumber(value)) m[prop] = this.defaults[prop];
-                else m[prop] = parseFloat(value);
-            }
-            // to check input string
-            for (i in props.booleanType) {
-                prop = props.booleanType[i], value = m[prop];
-                m[prop] = (value == "false") ? false : !!value;
-            }
-            // to check boolean datatype
-            for (i in props.stringType) {
-                prop = props.stringType[i], value = m[prop];
-                m[prop] = ("" + value).toLowerCase();
+            var o = this.options;
+            for (var prop in this._initialOptions) {
+                o[prop] = this._validatePropValue(prop, o[prop], true);
             }
         },
         _validateSliderType: function () {
-            var options = this.options, type = options.sliderType.toLowerCase();
+            var options = this.options, type = options.sliderType;
             this._rangeSlider = this._showRange = this._minRange = false;
             if (type == "range") this._rangeSlider = this._showRange = true;
-            else if (type.indexOf("min") != -1) {
+            else if (type != "default") {
                 this._showRange = this._minRange = true;
                 type = "min-range";
             }
-            else type = "default";
             options.sliderType = type;
         },
         _updateStartEnd: function () {
@@ -1284,10 +1262,18 @@
             var add = (this._start < this._end) ? 0 : 360;
             this._end += add - this._start;
         },
+        _backupPreValue: function () {
+            this._pre_handle1 = this._handle1;
+            this._pre_handle2 = this._handle2;
+        },
+        _revertPreValue: function () {
+            this._handle1 = this._pre_handle1;
+            this._handle2 = this._pre_handle2;
+            this.options.value = this._preValue;
+        },
         _validateValue: function (isChange) {
             this._backupPreValue();
             this._analyzeModelValue();
-            this._validateModelValue();
 
             if (this._raiseBeforeValueChange(isChange ? "change" : "code")) {
                 this._setValue();
@@ -1299,34 +1285,24 @@
             }
         },
         _analyzeModelValue: function () {
-            var o = this.options, val = o.value, newValue;
-            if (val instanceof Array) val = val.toString();
-            var parts = (typeof val == "string") ? val.split(",") : [val];
-            if (parts.length == 1 && this._isNumber(parts[0])) parts = [o.min, parts[0]];
-            else if (parts.length >= 2 && !this._isNumber(parts[1])) parts[1] = o.max;
+            var o = this.options, _this = this, newVal;
+            var parts = ("" + o.value).split(",");
 
-            var _this = this, parseModelValue = function (value) {
-                return _this._isNumber(value) ? parseFloat(value) : _this._defaultValue();
+            var parseModelValue = function (value) {
+                var val = _this._isNumber(value) ? parseFloat(value) : _this._defaultValue();
+                val = _this._limitValue(val);
+                val = _this._processStepByValue(val);
+                return val;
+            };
+            var valueToHandle = function (val) {
+                var ang = _this._valueToAngle(val);
+                return { value: val, angle: ang };
             };
 
             if (this._rangeSlider) {
-                newValue = [
-                    parseModelValue(parts[0]),
-                    parseModelValue(parts[1])
-                ].toString();
-            }
-            else {
-                var lastValue = parts.pop();
-                newValue = parseModelValue(lastValue);
-            }
-            o.value = newValue;
-        },
-        _validateModelValue: function () {
-            var o = this.options, val = o.value;
-            if (this._rangeSlider) {
-                var parts = val.split(","), val1 = parseFloat(parts[0]), val2 = parseFloat(parts[1]);
-                val1 = this._limitValue(val1);
-                val2 = this._limitValue(val2);
+                var val2 = parseModelValue(parts.pop()),
+                    val1 = parseModelValue(parts.pop());
+
                 if (!this._invertRange) {
                     var min = o.min, max = o.max;
                     var isMinHigher = (min > max);
@@ -1337,25 +1313,19 @@
                     }
                 }
 
-                this._handle1 = this._processStepByValue(val1);
-                this._handle2 = this._processStepByValue(val2);
+                this._handle1 = valueToHandle(val1);
+                this._handle2 = valueToHandle(val2);
+                newVal = val1 + "," + val2;
             }
             else {
+                var val = parseModelValue(parts.pop());
+
                 var index = this._minRange ? 2 : (this._active || 1);
-                this["_handle" + index] = this._processStepByValue(this._limitValue(val));
+                this["_handle" + index] = valueToHandle(val);
+                newVal = val;
             }
-            this._updateModelValue();
-        },
-        _updateModelValue: function () {
-            var value;
-            if (this._rangeSlider) {
-                value = this._handle1.value + "," + this._handle2.value;
-            }
-            else {
-                var index = this._minRange ? 2 : (this._active || 1);
-                value = this["_handle" + index].value;
-            }
-            this.options.value = value;
+
+            o.value = newVal;
         },
         _formRangeValue: function (value, index) {
             index = index || this._active;
@@ -1481,19 +1451,24 @@
         },
 
         // dynamic property set
-        _setProp: function (property, value, forceSet) {
+        _validatePropValue: function (property, value, initial) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
-                if (!this._isNumber(value)) return;
-                value = parseFloat(value);
+                if (!this._isNumber(value)) {
+                    value = initial ? this.defaults[property] : this.options[property];
+                }
+                else value = parseFloat(value);
             }
             else if ($.inArray(property, props.booleanType) != -1) {    // to check boolean datatype
                 value = (value == "false") ? false : !!value;
             }
             else if ($.inArray(property, props.stringType) != -1) {     // to check input string
-                value = value.toLowerCase();
+                value = ("" + value).toLowerCase();
             }
-
+            return value;
+        },
+        _setProp: function (property, value, forceSet) {
+            value = this._validatePropValue(property, value);
             var options = this.options;
             this._preValue = options.value;
             var prePropValue = options[property];
@@ -1531,17 +1506,17 @@
                     this._removeAnimation();
                     this._updateWidth();        // non SVG mode only
                     this._setRadius();
-                    this._refreshHandle();
+                    this._updateHandleSize();
                     this._updateTooltipPos();
                     this._addAnimation();
                     this._refreshSeperator();   // non SVG mode only
                     break;
                 case "borderWidth":
                     this._setRadius();
-                    this._refreshHandle();
+                    this._updateHandleSize();
                     break;
                 case "handleSize":
-                    this._refreshHandle();
+                    this._updateHandleSize();
                     break;
                 case "handleShape":
                     this._setHandleShape(prePropValue);
@@ -1709,10 +1684,9 @@
         this.id = control.id;
         this.control = $(control);
 
+        this._initialOptions = $.isPlainObject(options) ? options : {};
         // the options value holds the updated defaults value
-        this.options = $.extend(
-            {}, this.defaults, $.isPlainObject(options) ? options : {}
-        );
+        this.options = $.extend({}, this.defaults, this._initialOptions);
 
         this._saveInstanceOnElement(control);
 				
