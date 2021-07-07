@@ -64,6 +64,7 @@
             // otherwise, by default the slider starts with min value. this is mainly used
             // for min-range slider, where you can customize the min-range start position.
             startValue: null,
+            allowInvertedRange: false,
 
             // SVG related properties
             svgMode: true,
@@ -97,7 +98,7 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction", "svgMode"],
+                    "keyboardAction", "mouseScrollAction", "svgMode", "allowInvertedRange"],
                 stringType: ["value", "handleSize", "endAngle", "sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
             };
         },
@@ -130,6 +131,7 @@
             this._initialize();
             this._update();
             this._render();
+            this._checkDeprecated();
         },
         _initialize: function () {
             var browserName = this.browserName = this._getBrowserName();
@@ -226,6 +228,12 @@
                 this._setHandleValue(index);
             }
         },
+        _setHandleValue: function (index) {
+            this._active = index;
+            var handle = this["_handle" + index];
+            if (!this._minRange) this.bar = this._activeHandleBar();
+            this._changeSliderValue(handle.value, handle.angle);
+        },
         _appendTooltip: function () {
             var tooltip = this.tooltip = this._createElement("span.rs-tooltip rs-tooltip-text");
             this.container.append(tooltip);
@@ -317,12 +325,6 @@
                     .css({ "border-color": "", "background": handleColor });
             }
         },
-        _setHandleValue: function (index) {
-            this._active = index;
-            var handle = this["_handle" + index];
-            if (!this._minRange) this.bar = this._activeHandleBar();
-            this._changeSliderValue(handle.value, handle.angle);
-        },
         _addAnimation: function () {
             if (this.options.animation) this.control.addClass("rs-animation");
         },
@@ -411,7 +413,7 @@
         },
         _appendSeperator: function () {
             this._startLine = this._addSeperator(this._start, "rs-start");
-            this._endLine = this._addSeperator(this._start + this._end, "rs-end");
+            this._endLine = this._addSeperator(this._end, "rs-end");
             this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
@@ -436,7 +438,7 @@
         },
         _updateSeperator: function () {
             this._startLine.rsRotate(this._start);
-            this._endLine.rsRotate(this._start + this._end);
+            this._endLine.rsRotate(this._end);
         },
         _createHandle: function (index) {
             var handle = this._createElement("div.rs-handle");
@@ -590,11 +592,10 @@
                 this._handleDown($handleEle);
             }
             else {
-                var point = this._getXY(e), center = this._getCenterPoint();
+                var point = this._getXY(e), center = this._getCenterPoint(), o = this.options;
                 var distance = this._getDistance(point, center);
-                var block = this.block || this.svgContainer;
-                var outerDistance = block.outerWidth() / 2;
-                var innerDistance = outerDistance - (this.options.width + this._border());
+                var outerDistance = o.radius;
+                var innerDistance = outerDistance - (o.width + this._border());
 
                 if (distance >= innerDistance && distance <= outerDistance) {
                     var handle = this.control.find(".rs-handle.rs-focus"), angle, value;
@@ -608,15 +609,16 @@
                     angle = d.angle, value = d.value;
 
                     if (this._rangeSlider) {
+                        var h1Angle = this._handle1.angle, h2Angle = this._handle2.angle, active;
                         if (handle.length == 1) {
-                            var active = parseFloat(handle.attr("index"));
-                            if (!this._invertRange) {
-                                if (active == 1 && angle > this._handle2.angle) active = 2;
-                                else if (active == 2 && angle < this._handle1.angle) active = 1;
+                            active = parseFloat(handle.attr("index"));
+                            if (!o.allowInvertedRange) {
+                                if (active == 1 && angle > h2Angle) active = 2;
+                                else if (active == 2 && angle < h1Angle) active = 1;
                             }
-                            this._active = active;
                         }
-                        else this._active = (this._handle2.angle - angle) < (angle - this._handle1.angle) ? 2 : 1;
+                        else active = (angle < (h1Angle + h2Angle) / 2) ? 1 : 2;
+                        this._active = active;
                         this.bar = this._activeHandleBar();
                     }
 
@@ -778,26 +780,25 @@
 
         // internal methods
         _changeSliderValue: function (value, angle) {
-            var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle),
-                activeHandle = this._active,
+            var activeHandle = this._active,
                 options = this.options;
 
             if (!this._showRange) {
                 // if this is the default slider
                 this["_handle" + activeHandle] = { angle: angle, value: value };
                 options.value = value;
-                this.bar.rsRotate(lAngle);
+                this.bar.rsRotate(angle);
                 this._updateARIA(value);
             }
             else {
-                var isValidRange = (activeHandle == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
-                    (activeHandle == 2 && oAngle >= this._oriAngle(this._handle1.angle));
-                var canAllowInvertRange = this._invertRange;
+                var isValidRange = (activeHandle == 1 && angle <= this._handle2.angle) ||
+                    (activeHandle == 2 && angle >= this._handle1.angle);
+                var canAllowInvertRange = options.allowInvertedRange;
 
                 if (this._minRange || isValidRange || canAllowInvertRange) {
                     this["_handle" + activeHandle] = { angle: angle, value: value };
                     options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
-                    this.bar.rsRotate(lAngle);
+                    this.bar.rsRotate(angle);
                     this._updateARIA(value);
 
                     if (options.svgMode) {
@@ -806,13 +807,13 @@
                     }
 
                     // classic DIV handling
-                    var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
+                    var dAngle = this._handle2.angle - this._handle1.angle, o2 = "1", o3 = "0";
                     if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
                     this.block2.css("opacity", o2);
                     this.block3.css("opacity", o3);
 
-                    (activeHandle == 1 ? this.block4 : this.block2).rsRotate(lAngle - 180);
-                    (activeHandle == 1 ? this.block1 : this.block3).rsRotate(lAngle);
+                    (activeHandle == 1 ? this.block4 : this.block2).rsRotate(angle - 180);
+                    (activeHandle == 1 ? this.block1 : this.block3).rsRotate(angle);
                 }
             }
         },
@@ -840,7 +841,7 @@
             this.centerRadius = radius - border - (width / 2);
 
             var startAngle = this._start,
-                endAngle = startAngle + this._end;
+                endAngle = this._end;
 
             this.svgPathLength = this._getArcLength(this.centerRadius);
 
@@ -872,7 +873,7 @@
         },
         _getArcLength: function (radius) {
             // circle's arc length formula => 2πR(Θ/360)
-            return 2 * Math.PI * radius * (this._end / 360);
+            return 2 * Math.PI * radius * (this._arcLength / 360);
         },
         _getArcAngle: function (arc_length, radius) {
             if (radius == undefined) radius = this.centerRadius;
@@ -902,7 +903,7 @@
             if (!this._showRange) return;
 
             var startAngle = this._start,
-                totalAngle = this._end;
+                totalAngle = this._arcLength;
             var handle1Angle = this._handle1.angle,
                 handle2Angle = this._handle2.angle;
             if (isInit) {
@@ -989,41 +990,57 @@
         },
         _getCenterPoint: function () {
             var block = this.block || this.svgContainer;
-            var offset = block.offset(), center;
+            var offset = block.offset(), center, radius = this.options.radius;
             center = {
-                x: offset.left + (block.outerWidth() / 2),
-                y: offset.top + (block.outerHeight() / 2)
+                x: offset.left + radius,
+                y: offset.top + radius
             };
             return center;
         },
         _getAngleValue: function (point, center, isDrag) {
-            var deg = Math.atan2(point.y - center.y, center.x - point.x);
-            var angle = (-deg / (Math.PI / 180));
+            var radian = Math.atan2(point.y - center.y, center.x - point.x);
+            var angle = (-radian / (Math.PI / 180));
+            // the angle value between -180 to 180.. so convert to a 360 angle
+            if (angle < 0) angle += 360;
+            // make the angle greater than start, so that we can validate it between start and end
             if (angle < this._start) angle += 360;
+
             angle = this._checkAngle(angle, isDrag);
             return this._processStepByAngle(angle);
         },
         _checkAngle: function (angle, isDrag) {
-            var o_angle = this._oriAngle(angle),
-                preAngle = this["_handle" + this._active].angle,
-                o_preAngle = this._oriAngle(preAngle);
+            // this function will check the below conditions
+            // 1) whether the angle was inbetween the start and end angle
+            //      a) in that case, sometimes it was in the lineCap part also. so have to consider that
+            // 2) when handleLockDistance was mentioned, the handle shouldn'd move after the start and end edge point
+            var preAngle = this["_handle" + this._active].angle,
+                startAngle = this._start,
+                endAngle = this._end;
 
-            if (o_angle > this._end) {
+            if (angle > endAngle) {
                 if (!isDrag) {
                     var o = this.options;
                     if (o.lineCap === "round" || o.lineCap === "square") {
                         var lineCapLength = (o.width / 2) + o.borderWidth;
                         var bufferAngle = this._getArcAngle(lineCapLength);
-                        if (o_angle < this._end + bufferAngle) return this._end + this._start;
-                        else if (o_angle > 360 - bufferAngle) return this._start;
+
+                        // if the angle was in the start or end lineCap part, then return the corresponding value
+                        if (angle > startAngle + 360 - bufferAngle) return startAngle;
+                        else if (angle < endAngle + bufferAngle) return endAngle;
                     }
                     return preAngle;
                 }
-                angle = this._start + (o_preAngle <= this._end - o_preAngle ? 0 : this._end);
+                // based on the mid point, check where the previous angle lies
+                angle = preAngle < (startAngle + endAngle) / 2 ? startAngle : endAngle;
             }
             else if (isDrag) {
                 var d = this._handleDragDistance;
-                if (this._isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
+                if (this._isNumber(d)) {
+                    var diff = (angle - preAngle);
+                    if (Math.abs(diff) > (this._arcLength - d)) {
+                        return (diff > 0) ? startAngle : endAngle;
+                    }
+                }
             }
             return angle;
         },
@@ -1035,23 +1052,17 @@
         },
         _processStepByValue: function (value) {
             var o = this.options, min = o.min, max = o.max, step = o.step, isMinHigher = (min > max);
-            var remain, currVal, nextVal, preVal, newVal;
+            var remain, preVal, nextVal, midVal, newVal;
             
             step = (isMinHigher ? -step : step);
             remain = (value - min) % step;
 
-            currVal = value - remain;
-            nextVal = this._limitValue(currVal + step);
-            preVal = this._limitValue(currVal - step);
+            preVal = value - remain;
+            nextVal = this._limitValue(preVal + step);
+            midVal = (preVal + nextVal) / 2;
 
-            if(!isMinHigher) {
-                if (value >= currVal) newVal = (value - currVal < nextVal - value) ? currVal : nextVal;
-                else newVal = (currVal - value > value - preVal) ? currVal : preVal;
-            }
-            else {
-                if (value <= currVal) newVal = (currVal - value < value - nextVal) ? currVal : nextVal;
-                else newVal = (value - currVal > preVal - value) ? currVal : preVal;
-            }
+            var isFirstHalf = !isMinHigher ? (value < midVal) : (value > midVal);
+            newVal = isFirstHalf ? preVal : nextVal;
             newVal = this._round(newVal);
             return newVal;
         },
@@ -1059,30 +1070,21 @@
             var s = this.options.step.toString().split(".");
             return s[1] ? parseFloat(val.toFixed(s[1].length)) : Math.round(val);
         },
-        _oriAngle: function (angle) {
-            var ang = angle - this._start;
-            if (ang < 0) ang += 360;
-            return ang;
-        },
-        _limitAngle: function (angle) {
-            if (angle > 360 + this._start) angle -= 360;
-            if (angle < this._start) angle += 360;
-            return angle;
-        },
         _limitValue: function (value) {
             var o = this.options, min = o.min, max = o.max, isMinHigher = (min > max);
-            if ((!isMinHigher && value < min) || (isMinHigher && value > min)) value = min;
-            if ((!isMinHigher && value > max) || (isMinHigher && value < max)) value = max;
+            var _min = isMinHigher ? max : min, _max = isMinHigher ? min : max; 
+            if (value < _min) value = _min;
+            if (value > _max) value = _max;
             return value;
         },
         _angleToValue: function (angle) {
             var o = this.options, min = o.min, max = o.max, value;
-            value = (this._oriAngle(angle) / this._end) * (max - min) + min;
+            value = ((angle - this._start) / this._arcLength) * (max - min) + min;
             return value;
         },
         _valueToAngle: function (value) {
             var o = this.options, min = o.min, max = o.max, angle;
-            angle = (((value - min) / (max - min)) * this._end) + this._start;
+            angle = (((value - min) / (max - min)) * this._arcLength) + this._start;
             return angle;
         },
         _appendHiddenField: function () {
@@ -1197,7 +1199,10 @@
             if (allCircelShapes.indexOf(circleShape) == -1) {
                 if (circleShape == "half") circleShape = "half-top";
                 else if (circleShape == "quarter") circleShape = "quarter-top-left";
-                else circleShape = "full";
+                else {
+                    this._errorLog('The value "'+ circleShape + '" was invalid for the property "circleShape".');
+                    circleShape = "full";
+                }
             }
             this._isFullCircle = (fullCirclesShapes.indexOf(circleShape) !== -1);
             options.circleShape = circleShape;
@@ -1209,7 +1214,7 @@
             else if (shape == "custom-half" || shape == "custom-quarter") {
                 this._checkOverlay(".rs-overlay1", 180);
                 if (shape == "custom-quarter")
-                    this._checkOverlay(".rs-overlay2", this._end);
+                    this._checkOverlay(".rs-overlay2", this._arcLength);
             }
         },
         _checkOverlay: function (cls, angle) {
@@ -1259,8 +1264,7 @@
             this._start = this._validateStartAngle();
             this._end = this._validateEndAngle();
 
-            var add = (this._start < this._end) ? 0 : 360;
-            this._end += add - this._start;
+            this._arcLength = this._end - this._start;
         },
         _backupPreValue: function () {
             this._pre_handle1 = this._handle1;
@@ -1292,37 +1296,25 @@
                 var val = _this._isNumber(value) ? parseFloat(value) : _this._defaultValue();
                 val = _this._limitValue(val);
                 val = _this._processStepByValue(val);
-                return val;
-            };
-            var valueToHandle = function (val) {
                 var ang = _this._valueToAngle(val);
                 return { value: val, angle: ang };
             };
 
             if (this._rangeSlider) {
-                var val2 = parseModelValue(parts.pop()),
-                    val1 = parseModelValue(parts.pop());
-
-                if (!this._invertRange) {
-                    var min = o.min, max = o.max;
-                    var isMinHigher = (min > max);
-                    if (isMinHigher) {
-                        if (val1 < val2) val1 = val2;
-                    } else {
-                        if (val1 > val2) val2 = val1;
-                    }
+                var h2 = parseModelValue(parts.pop()),
+                    h1 = parseModelValue(parts.pop());
+                if (!o.allowInvertedRange) {
+                    if (h1.angle > h2.angle) h2 = h1;
                 }
-
-                this._handle1 = valueToHandle(val1);
-                this._handle2 = valueToHandle(val2);
-                newVal = val1 + "," + val2;
+                this._handle1 = h1;
+                this._handle2 = h2;
+                newVal = h1.value + "," + h2.value;
             }
             else {
-                var val = parseModelValue(parts.pop());
-
                 var index = this._minRange ? 2 : (this._active || 1);
-                this["_handle" + index] = valueToHandle(val);
-                newVal = val;
+                var handle = parseModelValue(parts.pop());
+                this["_handle" + index] = handle;
+                newVal = handle.value;
             }
 
             o.value = newVal;
@@ -1330,7 +1322,8 @@
         _formRangeValue: function (value, index) {
             index = index || this._active;
             var h1 = this._handle1.value, h2 = this._handle2.value;
-            return (index == 1) ? value + "," + h2 : h1 + "," + value;
+            var rangeVal = (index == 1) ? [value, h2] : [h1, value];
+            return rangeVal.join(",");
         },
 
         // common core methods
@@ -1346,7 +1339,7 @@
             }
             if (tagName == "path") {
                 attr = (attr || {});
-                attr["fill"] = "transparent";
+                if (!attr.fill) attr["fill"] = "transparent";
             }
             if (attr) {
                 this._setAttribute(svgEle, attr);
@@ -1385,12 +1378,22 @@
             return browserName;
         },
         _isBrowserSupported: function () {
-            var properties = ["borderRadius", "WebkitBorderRadius", "MozBorderRadius",
-                "OBorderRadius", "msBorderRadius", "KhtmlBorderRadius"];
-            for (var i = 0; i < properties.length; i++) {
-                if (document.body.style[properties[i]] !== undefined) return true;
+            if (document.createElementNS) {
+                return true;
             }
-            console.error(pluginName + ' : Browser not supported');
+            this._errorLog('Browser not supported');
+        },
+        _checkDeprecated: function () {
+            var o = this.options;
+            if (this._invertRange) {
+                this._errorLog('You are using "_invertRange" which was deprecated now. Instead please use the "allowInvertedRange" property.');
+            }
+            if (!o.svgMode) {
+                this._errorLog('The property "svgMode: false" was deprecated. Avoid the classic mode of slider, and migrate to the SVG mode.');
+            }
+        },
+        _errorLog: function (msg) {
+            console.error(pluginName + ' : ' + msg);
         },
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
@@ -1745,15 +1748,11 @@
 
     RoundSlider.prototype._drawArc = function (startAngle, endAngle, radius, isReverseDirection) {
         var actualEndAngle = endAngle;
-        if (startAngle > endAngle) {
-            endAngle += 360;
-        }
-
         // For inverted range (and consider semi circle), the range should start from the Start angle
         // and will end in the slider end. And again start with the slider start and ends with the End angle
-        var isInvertedRange = (this._oriAngle(endAngle) > this._end);
+        var isInvertedRange = (startAngle > endAngle);
         if (isInvertedRange) {
-            endAngle = this._start + this._end;
+            endAngle = this._end;
         }
     
         var isCircle = (endAngle - startAngle == 360);
@@ -1805,7 +1804,7 @@
             outerArc
         ];
     
-        if (innerRadius && innerRadius !== outerRadius) {
+        if (this._isNumber(innerRadius) && innerRadius !== outerRadius) {
             var innerEnd = this._polarToCartesian(innerRadius, endAngle);
             var innerArc = this._drawArc(startAngle, endAngle, innerRadius, true);     // draw inner circle
             
