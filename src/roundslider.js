@@ -65,6 +65,8 @@
             // for min-range slider, where you can customize the min-range start position.
             startValue: null,
             allowInvertedRange: false,
+            handleRotation: false,
+            snapToStep: true,
 
             // SVG related properties
             svgMode: true,
@@ -98,7 +100,7 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction", "svgMode", "allowInvertedRange"],
+                    "keyboardAction", "mouseScrollAction", "svgMode", "allowInvertedRange", "handleRotation", "snapToStep"],
                 stringType: ["value", "handleSize", "endAngle", "sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
             };
         },
@@ -134,8 +136,7 @@
             this._checkDeprecated();
         },
         _initialize: function () {
-            var browserName = this.browserName = this._getBrowserName();
-            if (browserName) this.control.addClass("rs-" + browserName);
+            this.control.addClass(this._getBrowserName());
             this._isReadOnly = false;
             this._checkDataType();
             this._refreshCircleShape();
@@ -441,7 +442,7 @@
             this._endLine.rsRotate(this._end);
         },
         _createHandle: function (index) {
-            var handle = this._createElement("div.rs-handle");
+            var handle = this._createElement("div.rs-handle rs-transition");
             handle.attr({ "index": index, "tabindex": "0" });
 
             var id = this._dataElement()[0].id; id = id ? id + "_" : "";
@@ -454,6 +455,7 @@
             bar.addClass(this._rangeSlider && index == 2 ? "rs-second" : "rs-first");
             // at initial creation keep the handle and bar at the default angle position
             bar.rsRotate(handleDefaults.angle);
+            if (this.options.handleRotation) handle.rsRotate(-handleDefaults.angle);
             this.container.append(bar);
             this._updateHandleSize();
 
@@ -533,11 +535,13 @@
                 }
             }
         },
-        _raiseBeforeValueChange: function (action, value) {
+        _raiseBeforeValueChange: function (action, value, angle) {
+            var o = this.options, index = this._active;
             if (typeof value !== "undefined") {
                 if (this._rangeSlider) value = this._formRangeValue(value);
             } else {
-                value = this.options.value;
+                value = o.value;
+                angle = this["_handle" + index].angle
             }
             var isUserAction = (action !== "code");
 
@@ -558,10 +562,24 @@
                 }
                 return returnValue;
             }
+
             // if this is the from user action then return false, because user can't update the same value again
             // otherwise if this is from 'code' then return true, since when changing the min and max values
             // at that time also slider needs to update, even though value not changed
-            return isUserAction ? false : true;
+            if (isUserAction) {
+                // 1) check for 'snapToStep' also.. if this was disabled then we can return true. since at this case
+                // the value remain same but the angle was different. The handle was free to move in the same step.
+                // 2) also check whether this is the same angle or not, to avoid duplicate actions
+                if (
+                    !o.snapToStep &&
+                    angle !== this["_pre_bvc_ang_h" + index]
+                ) {
+                    this["_pre_bvc_ang_h" + index] = angle;
+                    return true;
+                }
+                return false;
+            }
+            return true;
         },
         _raiseValueChange: function (action) {
             var value = this.options.value, handles = [];
@@ -622,7 +640,7 @@
                         this.bar = this._activeHandleBar();
                     }
 
-                    if (this._raiseBeforeValueChange("change", value)) {
+                    if (this._raiseBeforeValueChange("change", value, angle)) {
                         this._changeSliderValue(value, angle);
                         this._raiseEvent("change");
                     }
@@ -643,7 +661,7 @@
             var d = this._getAngleValue(point, center, true), angle, value;
             angle = d.angle, value = d.value;
 
-            if (this._raiseBeforeValueChange("drag", value)) {
+            if (this._raiseBeforeValueChange("drag", value, angle)) {
                 this._changeSliderValue(value, angle);
                 this._raiseEvent("drag");
             }
@@ -703,7 +721,7 @@
 
             ang = this._valueToAngle(val);
 
-            if (this._raiseBeforeValueChange("drag", val)) {
+            if (this._raiseBeforeValueChange("drag", val, ang)) {
                 this._changeSliderValue(val, ang);
                 this._raiseEvent("drag");
             }
@@ -741,7 +759,7 @@
             val = this._limitValue(val);
             ang = this._valueToAngle(val);
 
-            if (this._raiseBeforeValueChange("change", val)) {
+            if (this._raiseBeforeValueChange("change", val, ang)) {
                 this._removeAnimation();
                 this._changeSliderValue(val, ang);
                 this._raiseEvent("change");
@@ -787,8 +805,7 @@
                 // if this is the default slider
                 this["_handle" + activeHandle] = { angle: angle, value: value };
                 options.value = value;
-                this.bar.rsRotate(angle);
-                this._updateARIA(value);
+                this._moveHandle(angle, value);
             }
             else {
                 var isValidRange = (activeHandle == 1 && angle <= this._handle2.angle) ||
@@ -798,8 +815,7 @@
                 if (this._minRange || isValidRange || canAllowInvertRange) {
                     this["_handle" + activeHandle] = { angle: angle, value: value };
                     options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
-                    this.bar.rsRotate(angle);
-                    this._updateARIA(value);
+                    this._moveHandle(angle, value);
 
                     if (options.svgMode) {
                         this._moveSliderRange();
@@ -816,6 +832,13 @@
                     (activeHandle == 1 ? this.block1 : this.block3).rsRotate(angle);
                 }
             }
+        },
+        _moveHandle: function (angle, value) {
+            var handleAngle = this.options.handleRotation ? -angle : null;
+            this.bar
+                .rsRotate(angle)
+                .children().rsRotate(handleAngle);
+            this._updateARIA(value);
         },
 
         // SVG related functionalities
@@ -1045,9 +1068,10 @@
             return angle;
         },
         _processStepByAngle: function (angle) {
+            var o = this.options;
             var value = this._angleToValue(angle);
             var updatedValue = this._processStepByValue(value);
-            var updatedAngle = this._valueToAngle(updatedValue);
+            var updatedAngle = o.snapToStep ? this._valueToAngle(updatedValue) : angle;
             return { value: updatedValue, angle: updatedAngle };
         },
         _processStepByValue: function (value) {
@@ -1368,14 +1392,15 @@
             return typeof number === "number" && !isNaN(number);
         },
         _getBrowserName: function () {
-            var browserName = "", ua = window.navigator.userAgent;
+            var browserName = "", prefix = "rs-", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
             else if (ua.indexOf('MSIE ') > 0 || ua.indexOf('Trident/') > 0) browserName = "ie";
             else if (window.StyleMedia) browserName = "edge";
             else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
             else if ((!!window.chrome && !!window.chrome.webstore) || (ua.indexOf('Chrome') != -1)) browserName = "chrome";
-            return browserName;
+            else prefix = "";
+            return prefix + browserName;
         },
         _isBrowserSupported: function () {
             if (document.createElementNS) {
@@ -1524,6 +1549,9 @@
                 case "handleShape":
                     this._setHandleShape(prePropValue);
                     break;
+                case "handleRotation":
+                    this._setValue();
+                    break;
                 case "animation":
                     options.animation ? this._addAnimation() : this._removeAnimation();
                     break;
@@ -1576,7 +1604,7 @@
 
         // public methods
         option: function (property, value) {
-            this.set(property, value);
+            return this.set(property, value);
         },
         get: function (property) {
             return this.options[property];
@@ -1673,11 +1701,9 @@
     };
 
     $.fn.rsRotate = function (degree) {
-        var control = this, rotation = "rotate(" + degree + "deg)";
+        var control = this, rotation = degree != null ? "rotate(" + degree + "deg)" : "";
         control.css('-webkit-transform', rotation);
-        control.css('-moz-transform', rotation);
         control.css('-ms-transform', rotation);
-        control.css('-o-transform', rotation);
         control.css('transform', rotation);
         return control;
     };
