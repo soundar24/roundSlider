@@ -46,8 +46,14 @@
             value: null,
             radius: 85,
             width: 18,
+            // the below props are relative to "width" when you provide the value starts with "+" or "-"
+            // otherwise if you provide any number then it will take the exact value
+            pathWidth: "+0",
+            rangeWidth: "+0",
             handleSize: "+0",
+
             startAngle: 0,
+            // endAngle is relative to startAngle when you provide the value starts with "+" or "-"
             endAngle: "+360",
             animation: true,
             showTooltip: true,
@@ -172,6 +178,7 @@
             var options = this.options;
             if(options.svgMode) {
                 this._createSVGElements();
+                this._updateSliderThickness();
                 this._setSVGAttributes();
                 this._setSVGStyles();
                 this._moveSliderRange(true);
@@ -354,7 +361,8 @@
             if (o.svgMode && !this._isFullCircle) {
                 var handleBars = this._handleBars();
                 if (o.lineCap != "none") {
-                    extraSize = (o.lineCap === "butt") ? (o.borderWidth / 2) : ((o.width / 2) + o.borderWidth);
+                    extraSize = ((o.lineCap === "butt") ? o.borderWidth : this.sliderThickness) / 2;
+
                     if (circleShape.indexOf("bottom") != -1) {
                         handleBars.css("margin-top", extraSize + 'px');
                     }
@@ -401,8 +409,6 @@
             }
         },
         _border: function (seperator) {
-            var options = this.options;
-            if (options.svgMode) return options.borderWidth * 2;
             if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
@@ -541,7 +547,7 @@
                 if (this._rangeSlider) value = this._formRangeValue(value);
             } else {
                 value = o.value;
-                angle = this["_handle" + index].angle
+                angle = this["_handle" + index].angle;
             }
             var isUserAction = (action !== "code");
 
@@ -612,8 +618,13 @@
             else {
                 var point = this._getXY(e), center = this._getCenterPoint(), o = this.options;
                 var distance = this._getDistance(point, center);
-                var outerDistance = o.radius;
-                var innerDistance = outerDistance - (o.width + this._border());
+                var sliderWidth = o.width + (o.borderWidth * 2);
+                var excessWidth = this.sliderThickness - sliderWidth;
+
+                // in case if the range or path width exceeds the slider width then we have to reduce
+                // that excess width to calculate the actual slider path where handle will travel
+                var outerDistance = o.radius - (excessWidth / 2);
+                var innerDistance = outerDistance - sliderWidth;
 
                 if (distance >= innerDistance && distance <= outerDistance) {
                     var handle = this.control.find(".rs-handle.rs-focus"), angle, value;
@@ -859,14 +870,17 @@
             var o = this.options, radius = o.radius, 
                 border = o.borderWidth, width = o.width,
                 lineCap = o.lineCap, borderStyle = o.borderVisibility;
-            var outerRadius = radius - (border / 2),
-                innerRadius = outerRadius - width - border;
-            this.centerRadius = radius - border - (width / 2);
+
+            var centerRadius = this.centerRadius = radius - (this.sliderThickness / 2);
+
+            var halfWidth = (width + border) / 2;
+            var outerRadius = centerRadius + halfWidth,
+                innerRadius = centerRadius - halfWidth;
 
             var startAngle = this._start,
                 endAngle = this._end;
 
-            this.svgPathLength = this._getArcLength(this.centerRadius);
+            this.svgPathLength = this._getArcLength(centerRadius);
 
             if (borderStyle === "outer") innerRadius = outerRadius;
             else if (borderStyle === "inner") outerRadius = innerRadius;
@@ -879,13 +893,14 @@
             // and set the border width in css styles, since it shouldn't be overwritten by other styles
             $(this.$borderEle).css("stroke-width", border);
 
-            var d = this._drawPath(startAngle, endAngle, this.centerRadius);
-            var attr = { "d": d, "stroke-width": width, "stroke-linecap": lineCap };
+            var d = this._drawPath(startAngle, endAngle, centerRadius);
+            var attr = { "d": d, "stroke-width": this._pathWidth, "stroke-linecap": lineCap };
 
             // draw the path for slider path element
             this._setAttribute(this.$pathEle, attr);
 
             if (this._showRange) {
+                attr["stroke-width"] = this._rangeWidth;
                 // draw the path for slider range element
                 this._setAttribute(this.$rangeEle, attr);
 
@@ -893,6 +908,17 @@
                 if (lineCap == "round" || lineCap == "square") this.$rangeEle.setAttribute("stroke-dashoffset", "0.01");
                 else this.$rangeEle.removeAttribute("stroke-dashoffset");
             }
+        },
+        _updateSliderThickness: function () {
+            var o = this.options, width = o.width,
+                sliderWidth = width + (o.borderWidth * 2);
+            
+            var pathWidth = this._pathWidth = this._calcRelativeValue(o.pathWidth, width),
+                rangeWidth = this._rangeWidth = this._calcRelativeValue(o.rangeWidth, width);
+
+            // the thickness is the actual slider width including the border. if the range or path width
+            // was greater than slider width then that will be consider as thickness
+            this.sliderThickness = Math.max(sliderWidth, pathWidth, rangeWidth);
         },
         _getArcLength: function (radius) {
             // circle's arc length formula => 2πR(Θ/360)
@@ -971,7 +997,11 @@
             this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
         _isPropsRelatedToSVG: function (property) {
-            var svgRelatedProps = ["radius", "borderWidth", "borderVisibility", "width", "lineCap", "startAngle", "endAngle"];
+            // SVG needs to be re-render when these related properties are changed
+            var svgRelatedProps = [
+                "radius", "width", "pathWidth", "rangeWidth", "borderWidth", "borderVisibility",
+                "lineCap", "startAngle", "endAngle"
+            ];
             return this._hasProperty(property, svgRelatedProps);
         },
         _isPropsRelatedToSVGStyles: function (property) {
@@ -1195,16 +1225,20 @@
             return end;
         },
         _updateHandleSize: function () {
-            var o = this.options, sliderWidth = o.width;
+            var o = this.options, width = o.width;
             var size = o.handleSize.split(",");
-            var width = this._calcRelativeValue(size[0], sliderWidth);
-            var height = size[1] ? this._calcRelativeValue(size[1], sliderWidth) : width;
+            var handleWidth = this._calcRelativeValue(size[0], width);
+            var handleHeight = size[1] ? this._calcRelativeValue(size[1], width) : handleWidth;
 
-            var diff = (sliderWidth + this._border() - width) / 2;
-            this._handles().css({ height: height, width: width, "margin": -height / 2 + "px 0 0 " + diff + "px" });
+            var diff = (this.sliderThickness - handleWidth) / 2;
+            this._handles().css({
+                height: handleHeight, width: handleWidth,
+                "margin": -handleHeight / 2 + "px 0 0 " + diff + "px"
+            });
         },
-        _calcRelativeValue: function (strValue, baseValue) {
-            var value = parseFloat(strValue);
+        _calcRelativeValue: function (value, baseValue) {
+            var strValue = "" + value;
+            value = parseFloat(value);
             if (this._isNumber(strValue)) {
                 if (strValue.charAt(0) === "+" || strValue.charAt(0) === "-") {
                     value += baseValue;
@@ -1531,17 +1565,14 @@
                     this._updateTooltipPos();
                     break;
                 case "width":
-                    this._removeAnimation();
-                    this._updateWidth();        // non SVG mode only
-                    this._setRadius();
-                    this._updateHandleSize();
-                    this._updateTooltipPos();
-                    this._addAnimation();
-                    this._refreshSeperator();   // non SVG mode only
-                    break;
+                case "pathWidth":
+                case "rangeWidth":
                 case "borderWidth":
+                    this._updateWidth();        // non SVG mode only
+                    this._updateSliderThickness();
                     this._setRadius();
                     this._updateHandleSize();
+                    this._refreshSeperator();   // non SVG mode only
                     break;
                 case "handleSize":
                     this._updateHandleSize();
