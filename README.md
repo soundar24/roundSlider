@@ -1,6 +1,6 @@
 # roundSlider - A free jQuery plugin
 
-[![npm](https://img.shields.io/npm/v/round-slider)](https://www.npmjs.com/package/round-slider) [![GitHub](https://img.shields.io/github/license/soundar24/roundSlider)](https://github.com/soundar24/roundSlider/blob/master/LICENSE)
+[![Financial Contributors on Open Collective](https://opencollective.com/roundSlider/all/badge.svg?label=financial+contributors)](https://opencollective.com/roundSlider) [![npm](https://img.shields.io/npm/v/round-slider)](https://www.npmjs.com/package/round-slider) [![GitHub](https://img.shields.io/github/license/soundar24/roundSlider)](https://github.com/soundar24/roundSlider/blob/master/LICENSE)
 
 ### What's this ?
 
@@ -97,3 +97,33 @@ $("#slider").roundSlider({
 ### Licence
 
 roundSlider is licensed under the terms of the [MIT license](http://roundsliderui.com/licence.html "roundSlider - MIT licence").
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/soundar24/roundSlider/graphs/contributors"><img src="https://opencollective.com/roundSlider/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/roundSlider/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/roundSlider"><img src="https://opencollective.com/roundSlider/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/roundSlider/contribute)]
+
+<a href="https://opencollective.com/roundSlider/organization/0/website"><img src="https://opencollective.com/roundSlider/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/1/website"><img src="https://opencollective.com/roundSlider/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/2/website"><img src="https://opencollective.com/roundSlider/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/3/website"><img src="https://opencollective.com/roundSlider/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/4/website"><img src="https://opencollective.com/roundSlider/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/5/website"><img src="https://opencollective.com/roundSlider/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/6/website"><img src="https://opencollective.com/roundSlider/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/7/website"><img src="https://opencollective.com/roundSlider/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/8/website"><img src="https://opencollective.com/roundSlider/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/roundSlider/organization/9/website"><img src="https://opencollective.com/roundSlider/organization/9/avatar.svg"></a>
