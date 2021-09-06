@@ -46,8 +46,14 @@
             value: null,
             radius: 85,
             width: 18,
+            // the below props are relative to "width" when you provide the value starts with "+" or "-"
+            // otherwise if you provide any number then it will take the exact value
+            pathWidth: "+0",
+            rangeWidth: "+0",
             handleSize: "+0",
+
             startAngle: 0,
+            // endAngle is relative to startAngle when you provide the value starts with "+" or "-"
             endAngle: "+360",
             animation: true,
             showTooltip: true,
@@ -64,13 +70,18 @@
             // otherwise, by default the slider starts with min value. this is mainly used
             // for min-range slider, where you can customize the min-range start position.
             startValue: null,
+            allowInvertedRange: false,
+            handleRotation: false,
+            snapToStep: true,
 
             // SVG related properties
-            svgMode: false,
+            svgMode: true,
             borderWidth: 1,
-            borderColor: null,
-            pathColor: null,
-            rangeColor: null,
+            borderVisibility: "both",
+            borderColor: "#AAA",
+            pathColor: "#FFF",
+            rangeColor: "#54BBE0",
+            handleColor: null,
             tooltipColor: null,
 
             // events
@@ -95,8 +106,8 @@
             return {
                 numberType: ["min", "max", "step", "radius", "width", "borderWidth", "startAngle", "startValue"],
                 booleanType: ["animation", "showTooltip", "editableTooltip", "readOnly", "disabled",
-                    "keyboardAction", "mouseScrollAction", "svgMode"],
-                stringType: ["sliderType", "circleShape", "handleShape", "lineCap"]
+                    "keyboardAction", "mouseScrollAction", "svgMode", "allowInvertedRange", "handleRotation", "snapToStep"],
+                stringType: ["value", "handleSize", "endAngle", "sliderType", "circleShape", "handleShape", "lineCap", "borderVisibility"]
             };
         },
         
@@ -115,7 +126,7 @@
             if (this.control.is("input")) {
                 this._isInputType = true;
                 this._hiddenField = this.control;
-                this.control = this.$createElement("div");
+                this.control = this._createElement("div");
                 this.control.insertAfter(this._hiddenField);
                 options.value = this._hiddenField.val() || options.value;
             }
@@ -128,17 +139,17 @@
             this._initialize();
             this._update();
             this._render();
+            this._checkDeprecated();
         },
         _initialize: function () {
-            var browserName = this.browserName = this.getBrowserName();
-            if (browserName) this.control.addClass("rs-" + browserName);
+            this.control.addClass(this._getBrowserName());
             this._isReadOnly = false;
             this._checkDataType();
             this._refreshCircleShape();
         },
         _render: function () {
-            this.container = this.$createElement("div.rs-container");
-            this.innerContainer = this.$createElement("div.rs-inner-container");
+            this.container = this._createElement("div.rs-container");
+            this.innerContainer = this._createElement("div.rs-inner-container");
             this.container.append(this.innerContainer);
             var $rootCSS = "rs-control " + (this.options.svgMode ? "rs-svg-mode" : "rs-classic-mode");
             this.control.addClass($rootCSS).empty().append(this.container);
@@ -159,25 +170,26 @@
             this._validateSliderType();
             this._updateStartEnd();
             this._validateStartEnd();
+            this._active = 1;
             this._handle1 = this._handle2 = this._handleDefaults();
             this._analyzeModelValue();
-            this._validateModelValue();
         },
         _createLayers: function () {
             var options = this.options;
             if(options.svgMode) {
                 this._createSVGElements();
+                this._updateSliderThickness();
                 this._setSVGAttributes();
                 this._setSVGStyles();
                 this._moveSliderRange(true);
                 return;
             }
 
-            this.block = this.$createElement("div.rs-block rs-outer rs-border");
+            this.block = this._createElement("div.rs-block rs-outer rs-border");
             this.innerContainer.append(this.block);
 
             var padd = options.width, start = this._start, path;
-            path = this.$createElement("div.rs-path rs-transition");
+            path = this._createElement("div.rs-path rs-transition");
 
             if (this._showRange) {
                 this.block1 = path.clone().addClass("rs-range-color").rsRotate(start);
@@ -189,8 +201,8 @@
             }
             else this.block.append(path.addClass("rs-path-color"));
 
-            this.lastBlock = this.$createElement("span.rs-block").css({ "padding": padd });
-            this.innerBlock = this.$createElement("div.rs-inner rs-bg-color rs-border");
+            this.lastBlock = this._createElement("span.rs-block").css({ "padding": padd });
+            this.innerBlock = this._createElement("div.rs-inner rs-bg-color rs-border");
             this.lastBlock.append(this.innerBlock);
             this.block.append(this.lastBlock);
         },
@@ -213,15 +225,6 @@
         _updatePre: function () {
             this._prechange = this._predrag = this._pre_bvc = this._preValue = this.options.value;
         },
-        _backupPreValue: function () {
-            this._pre_handle1 = this._handle1;
-            this._pre_handle2 = this._handle2;
-        },
-        _revertPreValue: function () {
-            this._handle1 = this._pre_handle1;
-            this._handle2 = this._pre_handle2;
-            this._updateModelValue();
-        },
         _setValue: function () {
             if (this._rangeSlider) {
                 this._setHandleValue(1);
@@ -233,47 +236,53 @@
                 this._setHandleValue(index);
             }
         },
+        _setHandleValue: function (index) {
+            this._active = index;
+            var handle = this["_handle" + index];
+            if (!this._minRange) this.bar = this._activeHandleBar();
+            this._changeSliderValue(handle.value, handle.angle);
+        },
         _appendTooltip: function () {
-            if (this.container.children(".rs-tooltip").length !== 0) return;
-            var tooltip = this.tooltip = this.$createElement("span.rs-tooltip rs-tooltip-text");
+            var tooltip = this.tooltip = this._createElement("span.rs-tooltip rs-tooltip-text");
             this.container.append(tooltip);
             this._setTooltipColor(tooltip);
             this._tooltipEditable();
             this._updateTooltip();
         },
         _removeTooltip: function () {
-            if (this.container.children(".rs-tooltip").length == 0) return;
             this.tooltip && this.tooltip.remove();
+            delete this.tooltip;
         },
         _setTooltipColor: function (ele) {
-            var o = this.options, tooltipColor = o.tooltipColor;
-            var color = tooltipColor !== "inherit" ? tooltipColor : o.rangeColor;
-            if (ele && color != null) ele.css("color", color);
+            if (!ele) return;
+            var o = this.options, tooltipColor = o.tooltipColor || "";
+            if (tooltipColor == "inherit") tooltipColor = o.rangeColor;
+            ele.css("color", tooltipColor);
         },
         _tooltipEditable: function () {
             var o = this.options, tooltip = this.tooltip, hook;
             if (!tooltip || !o.showTooltip) return;
 
             if (o.editableTooltip) {
-                tooltip.addClass("rs-edit");
+                tooltip.addClass("rs-editable");
                 hook = "_bind";
             }
             else {
-                tooltip.removeClass("rs-edit");
+                tooltip.removeClass("rs-editable");
                 hook = "_unbind";
             }
             this[hook](tooltip, "click", this._editTooltip);
         },
         _editTooltip: function () {
             var tooltip = this.tooltip;
-            if (!tooltip.hasClass("rs-edit") || this._isReadOnly) return;
+            if (!tooltip.hasClass("rs-editable") || this._isReadOnly) return;
             var border = parseFloat(tooltip.css("border-left-width")) * 2;
-            var input = this.input = this.$createElement("input.rs-input rs-tooltip-text").css({
+            var input = this.input = this._createElement("input.rs-input rs-tooltip-text").css({
                 height: tooltip.outerHeight() - border,
                 width: tooltip.outerWidth() - border
             });
             this._setTooltipColor(input);
-            tooltip.html(input).removeClass("rs-edit").addClass("rs-hover");
+            tooltip.html(input).removeClass("rs-editable").addClass("rs-hover");
 
             input.focus().val(this._getTooltipValue(true));
 
@@ -281,7 +290,7 @@
         },
         _focusOut: function (e) {
             if (e.type == "change") {
-                var val = this.input.val().replace("-", ",");
+                var val = this.input.val().trim().replace("-", ",");
                 if (val[0] == ",") {
                     val = "-" + val.slice(1).replace("-", ",");
                 }
@@ -294,22 +303,35 @@
             }
             else {
                 delete this.input;
-                this.tooltip.addClass("rs-edit").removeClass("rs-hover");
+                this.tooltip.addClass("rs-editable").removeClass("rs-hover");
                 this._updateTooltip();
             }
         },
-        _setHandleShape: function () {
-            var options = this.options, type = options.handleShape, allHandles = this._handles();
-            allHandles.removeClass("rs-handle-dot rs-handle-square");
-            if (type == "dot") allHandles.addClass("rs-handle-dot");
-            else if (type == "square") allHandles.addClass("rs-handle-square");
-            else options.handleShape = "round";
+        _setHandleShape: function (preShape) {
+            var o = this.options, shape = o.handleShape, prefix = "rs-handle-", allHandles = this._handles();
+
+            allHandles
+                .removeClass(prefix + preShape)
+                .addClass(prefix + shape);
+
+            if (shape == "dot") allHandles.append(this._createElement("div." + prefix + shape + "-inner"));
+            else allHandles.empty();
+
+            this._setHandleColor();
         },
-        _setHandleValue: function (index) {
-            this._active = index;
-            var handle = this["_handle" + index];
-            if (!this._minRange) this.bar = this._activeHandleBar();
-            this._changeSliderValue(handle.value, handle.angle);
+        _setHandleColor: function () {
+            var o = this.options, handleColor = o.handleColor || "", shape = o.handleShape, allHandles = this._handles();
+            if (handleColor == "inherit") handleColor = o.rangeColor;
+
+            if (shape == "dot") {
+                allHandles
+                    .css({ "border-color": handleColor, "background": "" })
+                    .children().css("background", handleColor);
+            }
+            else {
+                allHandles
+                    .css({ "border-color": "", "background": handleColor });
+            }
         },
         _addAnimation: function () {
             if (this.options.animation) this.control.addClass("rs-animation");
@@ -318,13 +340,15 @@
             this.control.removeClass("rs-animation");
         },
         _setContainerClass: function () {
-            var circleShape = this.options.circleShape;
-            if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
-                this.container.addClass("rs-full rs-" + circleShape);
+            var circleShape = this.options.circleShape,
+                prefix = " rs-", className = prefix;
+
+            if (this._isFullCircle) {
+                className += circleShape + " rs-full";
             }
-            else {
-                this.container.addClass("rs-" + circleShape.split("-").join(" rs-"));
-            }
+            else className += circleShape.split("-").join(prefix);
+
+            this.container.addClass(className);
         },
         _setRadius: function () {
             var o = this.options, r = o.radius, d = r * 2, circleShape = o.circleShape;
@@ -334,11 +358,11 @@
             // whenever the radius changes, before update the container size
             // check for the lineCap also, since that will make some additional size
             // also, based on that need to align the handle bars
-            var isFullCircle = (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0);
-            if (o.svgMode && !isFullCircle) {
+            if (o.svgMode && !this._isFullCircle) {
                 var handleBars = this._handleBars();
                 if (o.lineCap != "none") {
-                    extraSize = (o.lineCap === "butt") ? (o.borderWidth / 2) : ((o.width / 2) + o.borderWidth);
+                    extraSize = ((o.lineCap === "butt") ? o.borderWidth : this.sliderThickness) / 2;
+
                     if (circleShape.indexOf("bottom") != -1) {
                         handleBars.css("margin-top", extraSize + 'px');
                     }
@@ -385,8 +409,6 @@
             }
         },
         _border: function (seperator) {
-            var options = this.options;
-            if (options.svgMode) return options.borderWidth * 2;
             if (seperator) return parseFloat(this._startLine.children().css("border-bottom-width"));
             return parseFloat(this.block.css("border-top-width")) * 2;
         },
@@ -398,12 +420,12 @@
         },
         _appendSeperator: function () {
             this._startLine = this._addSeperator(this._start, "rs-start");
-            this._endLine = this._addSeperator(this._start + this._end, "rs-end");
+            this._endLine = this._addSeperator(this._end, "rs-end");
             this._refreshSeperator();
         },
         _addSeperator: function (pos, cls) {
-            var line = this.$createElement("span.rs-seperator rs-border");
-            var lineWrap = this.$createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
+            var line = this._createElement("span.rs-seperator rs-border");
+            var lineWrap = this._createElement("span.rs-bar rs-transition " + cls).append(line).rsRotate(pos);
             this.container.append(lineWrap);
             return lineWrap;
         },
@@ -423,12 +445,11 @@
         },
         _updateSeperator: function () {
             this._startLine.rsRotate(this._start);
-            this._endLine.rsRotate(this._start + this._end);
+            this._endLine.rsRotate(this._end);
         },
         _createHandle: function (index) {
-            var handle = this.$createElement("div.rs-handle rs-move"), o = this.options, hs;
-            if ((hs = o.handleShape) != "round") handle.addClass("rs-handle-" + hs);
-            handle.attr({ "index": index, "tabIndex": "0" });
+            var handle = this._createElement("div.rs-handle rs-transition");
+            handle.attr({ "index": index, "tabindex": "0" });
 
             var id = this._dataElement()[0].id; id = id ? id + "_" : "";
             var label = id + "handle";
@@ -436,12 +457,13 @@
             handle.attr({ "role": "slider", "aria-label": label });     // WAI-ARIA support
 
             var handleDefaults = this._handleDefaults();
-            var bar = this.$createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
+            var bar = this._createElement("div.rs-bar rs-transition").css("z-index", "7").append(handle);
             bar.addClass(this._rangeSlider && index == 2 ? "rs-second" : "rs-first");
             // at initial creation keep the handle and bar at the default angle position
             bar.rsRotate(handleDefaults.angle);
+            if (this.options.handleRotation) handle.rsRotate(-handleDefaults.angle);
             this.container.append(bar);
-            this._refreshHandle();
+            this._updateHandleSize();
 
             this.bar = bar;
             this._active = index;
@@ -449,24 +471,9 @@
             this._bind(handle, "focus blur", this._handleFocus);
             return handle;
         },
-        _refreshHandle: function () {
-            var o = this.options, hSize = o.handleSize, width = o.width, h, w, isSquare = true, isNumber = this.isNumber;
-            if (typeof hSize === "string" && isNumber(hSize)) {
-                if (hSize.charAt(0) === "+" || hSize.charAt(0) === "-") {
-                    hSize = width + parseFloat(hSize);
-                }
-                else if (hSize.indexOf(",")) {
-                    var s = hSize.split(",");
-                    if (isNumber(s[0]) && isNumber(s[1])) w = parseFloat(s[0]), h = parseFloat(s[1]), isSquare = false;
-                }
-            }
-            if (isSquare) h = w = isNumber(hSize) ? parseFloat(hSize) : width;
-            var diff = (width + this._border() - w) / 2;
-            this._handles().css({ height: h, width: w, "margin": -h / 2 + "px 0 0 " + diff + "px" });
-        },
         _defaultValue: function () {
             var o = this.options, startValue = o.startValue;
-            var defaultValue = this.isNumber(startValue) ? this._limitValue(startValue) : o.min;
+            var defaultValue = this._isNumber(startValue) ? this._limitValue(startValue) : o.min;
             return defaultValue;
         },
         _handleDefaults: function () {
@@ -483,6 +490,20 @@
             if (this._minRange) return this.bar;
             index = (index != undefined) ? index : this._active;
             return $(this._handleBars()[index - 1]);
+        },
+        _updateHandleBar: function ($handle) {
+            this.bar = $handle.parent();
+            this._active = parseFloat($handle.attr("index"));
+        },
+        _getHandleEle: function ($target) {
+            if ($target.hasClass("rs-handle"))
+                return $target;
+
+            // this is for the "dot" handleShape, where the handle having the child element also
+            var $parent = $target.parent();
+            if ($parent.hasClass("rs-handle"))
+                return $parent;
+            return null;
         },
         _handleArgs: function (index) {
             index = (index != undefined) ? index : this._active;
@@ -509,22 +530,24 @@
                 this._updateTooltip();
 
                 var _handle = this._handleArgs();
-                this._raise(event, { value: currentValue, preValue: preValue, "handle": _handle });
+                this._raise(event, { preValue: preValue, "handle": _handle });
 
                 if (currentValue != this._preValue) {
                     // whenever the drag and change event happens, at that time trigger 'update' also
-                    this._raise("update", { value: currentValue, preValue: preValue, "handle": _handle, action: event });
+                    this._raise("update", { preValue: preValue, "handle": _handle, action: event });
 
                     // after the "update" event trigger the "valueChange" event
                     this._raiseValueChange(event);
                 }
             }
         },
-        _raiseBeforeValueChange: function (action, value) {
+        _raiseBeforeValueChange: function (action, value, angle) {
+            var o = this.options, index = this._active;
             if (typeof value !== "undefined") {
                 if (this._rangeSlider) value = this._formRangeValue(value);
             } else {
-                value = this.options.value;
+                value = o.value;
+                angle = this["_handle" + index].angle;
             }
             var isUserAction = (action !== "code");
 
@@ -545,10 +568,24 @@
                 }
                 return returnValue;
             }
+
             // if this is the from user action then return false, because user can't update the same value again
             // otherwise if this is from 'code' then return true, since when changing the min and max values
             // at that time also slider needs to update, even though value not changed
-            return isUserAction ? false : true;
+            if (isUserAction) {
+                // 1) check for 'snapToStep' also.. if this was disabled then we can return true. since at this case
+                // the value remain same but the angle was different. The handle was free to move in the same step.
+                // 2) also check whether this is the same angle or not, to avoid duplicate actions
+                if (
+                    !o.snapToStep &&
+                    angle !== this["_pre_bvc_ang_h" + index]
+                ) {
+                    this["_pre_bvc_ang_h" + index] = angle;
+                    return true;
+                }
+                return false;
+            }
+            return true;
         },
         _raiseValueChange: function (action) {
             var value = this.options.value, handles = [];
@@ -572,17 +609,22 @@
         // Events handlers
         _elementDown: function (e) {
             if (this._isReadOnly) return;
-            var $target = $(e.target);
+            var $handleEle = this._getHandleEle($(e.target));
 
-            if ($target.hasClass("rs-handle")) {
-                this._handleDown(e);
+            if ($handleEle) {
+                e.preventDefault();
+                this._handleDown($handleEle);
             }
             else {
-                var point = this._getXY(e), center = this._getCenterPoint();
+                var point = this._getXY(e), center = this._getCenterPoint(), o = this.options;
                 var distance = this._getDistance(point, center);
-                var block = this.block || this.svgContainer;
-                var outerDistance = block.outerWidth() / 2;
-                var innerDistance = outerDistance - (this.options.width + this._border());
+                var sliderWidth = o.width + (o.borderWidth * 2);
+                var excessWidth = this.sliderThickness - sliderWidth;
+
+                // in case if the range or path width exceeds the slider width then we have to reduce
+                // that excess width to calculate the actual slider path where handle will travel
+                var outerDistance = o.radius - (excessWidth / 2);
+                var innerDistance = outerDistance - sliderWidth;
 
                 if (distance >= innerDistance && distance <= outerDistance) {
                     var handle = this.control.find(".rs-handle.rs-focus"), angle, value;
@@ -596,35 +638,33 @@
                     angle = d.angle, value = d.value;
 
                     if (this._rangeSlider) {
+                        var h1Angle = this._handle1.angle, h2Angle = this._handle2.angle, active;
                         if (handle.length == 1) {
-                            var active = parseFloat(handle.attr("index"));
-                            if (!this._invertRange) {
-                                if (active == 1 && angle > this._handle2.angle) active = 2;
-                                else if (active == 2 && angle < this._handle1.angle) active = 1;
+                            active = parseFloat(handle.attr("index"));
+                            if (!o.allowInvertedRange) {
+                                if (active == 1 && angle > h2Angle) active = 2;
+                                else if (active == 2 && angle < h1Angle) active = 1;
                             }
-                            this._active = active;
                         }
-                        else this._active = (this._handle2.angle - angle) < (angle - this._handle1.angle) ? 2 : 1;
+                        else active = (angle < (h1Angle + h2Angle) / 2) ? 1 : 2;
+                        this._active = active;
                         this.bar = this._activeHandleBar();
                     }
 
-                    if (this._raiseBeforeValueChange("change", value)) {
+                    if (this._raiseBeforeValueChange("change", value, angle)) {
                         this._changeSliderValue(value, angle);
                         this._raiseEvent("change");
                     }
                 }
             }
         },
-        _handleDown: function (e) {
-            e.preventDefault();
-            var $target = $(e.target);
-            $target.focus();
+        _handleDown: function ($handle) {
+            $handle.focus();
             this._removeAnimation();
             this._bindMouseEvents("_bind");
-            this.bar = $target.parent();
-            this._active = parseFloat($target.attr("index"));
-            this._handles().removeClass("rs-move");
-            this._raise("start", { value: this.options.value, "handle": this._handleArgs() });
+            this._updateHandleBar($handle);
+            this.control.addClass("rs-dragging");
+            this._raise("start", { "handle": this._handleArgs() });
         },
         _handleMove: function (e) {
             e.preventDefault();
@@ -632,17 +672,17 @@
             var d = this._getAngleValue(point, center, true), angle, value;
             angle = d.angle, value = d.value;
 
-            if (this._raiseBeforeValueChange("drag", value)) {
+            if (this._raiseBeforeValueChange("drag", value, angle)) {
                 this._changeSliderValue(value, angle);
                 this._raiseEvent("drag");
             }
         },
         _handleUp: function () {
-            this._handles().addClass("rs-move");
+            this.control.removeClass("rs-dragging");
             this._bindMouseEvents("_unbind");
             this._addAnimation();
             this._raiseEvent("change");
-            this._raise("stop", { value: this.options.value, "handle": this._handleArgs() });
+            this._raise("stop", { "handle": this._handleArgs() });
         },
         _handleFocus: function (e) {
             if (this._isReadOnly) return;
@@ -658,10 +698,9 @@
             }
 
             // when the handle gets focus
-            var $target = $(e.target);
-            $target.addClass("rs-focus");
-            this.bar = $target.parent();
-            this._active = parseFloat($target.attr("index"));
+            var $handle = $(e.target);
+            $handle.addClass("rs-focus");
+            this._updateHandleBar($handle);
             if (keyboardActionEnabled) {
                 this._bindKeyboardEvents("_bind");
             }
@@ -693,7 +732,7 @@
 
             ang = this._valueToAngle(val);
 
-            if (this._raiseBeforeValueChange("drag", val)) {
+            if (this._raiseBeforeValueChange("drag", val, ang)) {
                 this._changeSliderValue(val, ang);
                 this._raiseEvent("drag");
             }
@@ -731,7 +770,7 @@
             val = this._limitValue(val);
             ang = this._valueToAngle(val);
 
-            if (this._raiseBeforeValueChange("change", val)) {
+            if (this._raiseBeforeValueChange("change", val, ang)) {
                 this._removeAnimation();
                 this._changeSliderValue(val, ang);
                 this._raiseEvent("change");
@@ -740,11 +779,14 @@
         },
         _updateActiveHandle: function (e) {
             var $target = $(e.target);
-            if ($target.hasClass("rs-handle") && $target.parent().parent()[0] == this.control[0]) {
-                this.bar = $target.parent();
-                this._active = parseFloat($target.attr("index"));
+            var $handleEle = this._getHandleEle($target);
+
+            if ($handleEle && $target.parents(".rs-control")[0] == this.control[0]) {
+                this._updateHandleBar($handleEle);
             }
-            if (!this.bar.find(".rs-handle").hasClass("rs-focus")) this.bar.find(".rs-handle").focus();
+            // get the updated handle again and focus that
+            var $handle = this.bar.children();
+            if (!$handle.hasClass("rs-focus")) $handle.focus();
         },
 
         // Events binding
@@ -767,27 +809,24 @@
 
         // internal methods
         _changeSliderValue: function (value, angle) {
-            var oAngle = this._oriAngle(angle), lAngle = this._limitAngle(angle),
-                activeHandle = this._active,
+            var activeHandle = this._active,
                 options = this.options;
 
             if (!this._showRange) {
                 // if this is the default slider
                 this["_handle" + activeHandle] = { angle: angle, value: value };
                 options.value = value;
-                this.bar.rsRotate(lAngle);
-                this._updateARIA(value);
+                this._moveHandle(angle, value);
             }
             else {
-                var isValidRange = (activeHandle == 1 && oAngle <= this._oriAngle(this._handle2.angle)) ||
-                    (activeHandle == 2 && oAngle >= this._oriAngle(this._handle1.angle));
-                var canAllowInvertRange = this._invertRange;
+                var isValidRange = (activeHandle == 1 && angle <= this._handle2.angle) ||
+                    (activeHandle == 2 && angle >= this._handle1.angle);
+                var canAllowInvertRange = options.allowInvertedRange;
 
                 if (this._minRange || isValidRange || canAllowInvertRange) {
                     this["_handle" + activeHandle] = { angle: angle, value: value };
                     options.value = this._rangeSlider ? this._handle1.value + "," + this._handle2.value : value;
-                    this.bar.rsRotate(lAngle);
-                    this._updateARIA(value);
+                    this._moveHandle(angle, value);
 
                     if (options.svgMode) {
                         this._moveSliderRange();
@@ -795,93 +834,125 @@
                     }
 
                     // classic DIV handling
-                    var dAngle = this._oriAngle(this._handle2.angle) - this._oriAngle(this._handle1.angle), o2 = "1", o3 = "0";
+                    var dAngle = this._handle2.angle - this._handle1.angle, o2 = "1", o3 = "0";
                     if (dAngle <= 180 && !(dAngle < 0 && dAngle > -180)) o2 = "0", o3 = "1";
                     this.block2.css("opacity", o2);
                     this.block3.css("opacity", o3);
 
-                    (activeHandle == 1 ? this.block4 : this.block2).rsRotate(lAngle - 180);
-                    (activeHandle == 1 ? this.block1 : this.block3).rsRotate(lAngle);
+                    (activeHandle == 1 ? this.block4 : this.block2).rsRotate(angle - 180);
+                    (activeHandle == 1 ? this.block1 : this.block3).rsRotate(angle);
                 }
             }
+        },
+        _moveHandle: function (angle, value) {
+            var handleAngle = this.options.handleRotation ? -angle : null;
+            this.bar
+                .rsRotate(angle)
+                .children().rsRotate(handleAngle);
+            this._updateARIA(value);
         },
 
         // SVG related functionalities
         _createSVGElements: function () {
-            var svgEle = this.$createSVG("svg");
+            var svgEle = this.$svgEle = this._createSVG("svg");
             var PATH = "path.rs-transition ";
-            var pathAttr = { fill: "transparent" };
 
-            this.$path = this.$createSVG(PATH + "rs-path", pathAttr);
-            this.$range = this._showRange ? this.$createSVG(PATH + "rs-range", pathAttr) : null;
-            this.$border = this.$createSVG(PATH + "rs-border", pathAttr);
-            this.$append(svgEle, [this.$path, this.$range, this.$border]);
+            this.$pathEle = this._createSVG(PATH + "rs-path");
+            this.$rangeEle = this._showRange ? this._createSVG(PATH + "rs-range") : null;
+            this.$borderEle = this._createSVG(PATH + "rs-border");
+            this._append(svgEle, [this.$pathEle, this.$rangeEle, this.$borderEle]);
 
-            this.svgContainer = this.$createElement("div.rs-svg-container")
+            this.svgContainer = this._createElement("div.rs-svg-container")
                 .append(svgEle)
                 .appendTo(this.innerContainer);
         },
         _setSVGAttributes: function () {
             var o = this.options, radius = o.radius, 
                 border = o.borderWidth, width = o.width,
-                lineCap = o.lineCap;
-            var outerRadius = radius - (border / 2),
-                innerRadius = outerRadius - width - border;
+                lineCap = o.lineCap, borderStyle = o.borderVisibility;
+
+            var centerRadius = this.centerRadius = radius - (this.sliderThickness / 2);
+
+            var halfWidth = (width + border) / 2;
+            var outerRadius = centerRadius + halfWidth,
+                innerRadius = centerRadius - halfWidth;
+
             var startAngle = this._start,
-                totalAngle = this._end,
-                endAngle = startAngle + totalAngle;
+                endAngle = this._end;
+
+            this.svgPathLength = this._getArcLength(centerRadius);
+
+            if (borderStyle === "outer") innerRadius = outerRadius;
+            else if (borderStyle === "inner") outerRadius = innerRadius;
 
             // draw the path for border element
-            var border_d = this.$drawPath(radius, outerRadius, startAngle, endAngle, innerRadius, lineCap);
-            this.$setAttribute(this.$border, {
+            var border_d = this._drawPath(startAngle, endAngle, outerRadius, innerRadius);
+            this._setAttribute(this.$borderEle, {
                 "d": border_d
             });
-            // and set the border width
-            $(this.$border).css("stroke-width", border);
+            // and set the border width in css styles, since it shouldn't be overwritten by other styles
+            $(this.$borderEle).css("stroke-width", border);
 
-            var pathRadius = radius - border - (width / 2);
-            this.svgPathLength = this.$getArcLength(pathRadius, totalAngle);
-            var d = this.$drawPath(radius, pathRadius, startAngle, endAngle);
-            var attr = { "d": d, "stroke-width": width, "stroke-linecap": lineCap };
+            var d = this._drawPath(startAngle, endAngle, centerRadius);
+            var attr = { "d": d, "stroke-width": this._pathWidth, "stroke-linecap": lineCap };
 
             // draw the path for slider path element
-            this.$setAttribute(this.$path, attr);
+            this._setAttribute(this.$pathEle, attr);
 
             if (this._showRange) {
+                attr["stroke-width"] = this._rangeWidth;
                 // draw the path for slider range element
-                this.$setAttribute(this.$range, attr);
+                this._setAttribute(this.$rangeEle, attr);
 
                 // there was a small bug when lineCap was round/square, this will solve that
-                if (lineCap == "round" || lineCap == "square") this.$range.setAttribute("stroke-dashoffset", "0.01");
-                else this.$range.removeAttribute("stroke-dashoffset");
+                if (lineCap == "round" || lineCap == "square") this.$rangeEle.setAttribute("stroke-dashoffset", "0.01");
+                else this.$rangeEle.removeAttribute("stroke-dashoffset");
             }
+        },
+        _updateSliderThickness: function () {
+            var o = this.options, width = o.width,
+                sliderWidth = width + (o.borderWidth * 2);
+            
+            var pathWidth = this._pathWidth = this._calcRelativeValue(o.pathWidth, width),
+                rangeWidth = this._rangeWidth = this._calcRelativeValue(o.rangeWidth, width);
+
+            // the thickness is the actual slider width including the border. if the range or path width
+            // was greater than slider width then that will be consider as thickness
+            this.sliderThickness = Math.max(sliderWidth, pathWidth, rangeWidth);
+        },
+        _getArcLength: function (radius) {
+            // circle's arc length formula => 2πR(Θ/360)
+            return 2 * Math.PI * radius * (this._arcLength / 360);
+        },
+        _getArcAngle: function (arc_length, radius) {
+            if (radius == undefined) radius = this.centerRadius;
+            // derive the angle formula from arc length, so => Θ = (arc_length * 360) / (2 * Math.PI * radius)
+            return (arc_length * 360) / (2 * Math.PI * radius);
         },
         _setSVGStyles: function () {
             var o = this.options,
-                borderColor = o.borderColor,
-                pathColor = o.pathColor,
-                rangeColor = o.rangeColor;
+                borderColor = o.borderColor || "",
+                pathColor = o.pathColor || "",
+                rangeColor = o.rangeColor || "";
 
-            if (borderColor) {
-                if (borderColor == "inherit") borderColor = rangeColor;
-                $(this.$border).css("stroke", borderColor);
+            if (borderColor == "inherit") borderColor = rangeColor;
+            $(this.$borderEle).css("stroke", borderColor);
+
+            this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
+            if (pathColor == "inherit") pathColor = rangeColor;
+            $(this.$pathEle).css("stroke", pathColor);
+
+            if (this._showRange) {
+                $(this.$rangeEle).css("stroke", rangeColor);
             }
 
-            if (pathColor) {
-                this.svgContainer[(pathColor == "inherit") ? "addClass" : "removeClass"]("rs-path-inherited");
-                if (pathColor == "inherit") pathColor = rangeColor;
-                $(this.$path).css("stroke", pathColor);
-            }
-
-            if (this._showRange && rangeColor) {
-                $(this.$range).css("stroke", rangeColor);
-            }
+            this._setHandleColor();
         },
         _moveSliderRange: function (isInit) {
             if (!this._showRange) return;
 
             var startAngle = this._start,
-                totalAngle = this._end;
+                totalAngle = this._arcLength;
             var handle1Angle = this._handle1.angle,
                 handle2Angle = this._handle2.angle;
             if (isInit) {
@@ -923,14 +994,18 @@
             var handle2Distance = ((handle2Angle - handle1Angle) / totalAngle) * this.svgPathLength;
             dashArray.push(handle2Distance, this.svgPathLength);
 
-            this.$range.style.strokeDasharray = dashArray.join(" ");
+            this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
         _isPropsRelatedToSVG: function (property) {
-            var svgRelatedProps = ["radius", "borderWidth", "width", "lineCap", "startAngle", "endAngle"];
+            // SVG needs to be re-render when these related properties are changed
+            var svgRelatedProps = [
+                "radius", "width", "pathWidth", "rangeWidth", "borderWidth", "borderVisibility",
+                "lineCap", "startAngle", "endAngle"
+            ];
             return this._hasProperty(property, svgRelatedProps);
         },
         _isPropsRelatedToSVGStyles: function (property) {
-            var svgStylesRelatedProps = ["borderColor", "pathColor", "rangeColor"];
+            var svgStylesRelatedProps = ["borderColor", "pathColor", "rangeColor", "handleColor"];
             return this._hasProperty(property, svgStylesRelatedProps);
         },
         _hasProperty: function (property, list) {
@@ -960,7 +1035,7 @@
             else this.bar.children().attr({ "aria-valuemin": min, "aria-valuemax": max });
         },
         _getDistance: function (p1, p2) {
-            return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+            return Math.sqrt(Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2));
         },
         _getXY: function (e) {
             if (e.type.indexOf("mouse") == -1) e = (e.originalEvent || e).changedTouches[0];
@@ -968,93 +1043,106 @@
         },
         _getCenterPoint: function () {
             var block = this.block || this.svgContainer;
-            var offset = block.offset(), center;
+            var offset = block.offset(), center, radius = this.options.radius;
             center = {
-                x: offset.left + (block.outerWidth() / 2),
-                y: offset.top + (block.outerHeight() / 2)
+                x: offset.left + radius,
+                y: offset.top + radius
             };
             return center;
         },
         _getAngleValue: function (point, center, isDrag) {
-            var deg = Math.atan2(point.y - center.y, center.x - point.x);
-            var angle = (-deg / (Math.PI / 180));
+            var radian = Math.atan2(point.y - center.y, center.x - point.x);
+            var angle = (-radian / (Math.PI / 180));
+            // the angle value between -180 to 180.. so convert to a 360 angle
+            if (angle < 0) angle += 360;
+            // make the angle greater than start, so that we can validate it between start and end
             if (angle < this._start) angle += 360;
+
             angle = this._checkAngle(angle, isDrag);
             return this._processStepByAngle(angle);
         },
         _checkAngle: function (angle, isDrag) {
-            var o_angle = this._oriAngle(angle),
-                preAngle = this["_handle" + this._active].angle,
-                o_preAngle = this._oriAngle(preAngle);
+            // this function will check the below conditions
+            // 1) whether the angle was inbetween the start and end angle
+            //      a) in that case, sometimes it was in the lineCap part also. so have to consider that
+            // 2) when handleLockDistance was mentioned, the handle shouldn'd move after the start and end edge point
+            var preAngle = this["_handle" + this._active].angle,
+                startAngle = this._start,
+                endAngle = this._end;
 
-            if (o_angle > this._end) {
-                if (!isDrag) return preAngle;
-                angle = this._start + (o_preAngle <= this._end - o_preAngle ? 0 : this._end);
+            if (angle > endAngle) {
+                if (!isDrag) {
+                    var o = this.options;
+                    if (o.lineCap === "round" || o.lineCap === "square") {
+                        var lineCapLength = (o.width / 2) + o.borderWidth;
+                        var bufferAngle = this._getArcAngle(lineCapLength);
+
+                        // if the angle was in the start or end lineCap part, then return the corresponding value
+                        if (angle > startAngle + 360 - bufferAngle) return startAngle;
+                        else if (angle < endAngle + bufferAngle) return endAngle;
+                    }
+                    return preAngle;
+                }
+                // based on the mid point, check where the previous angle lies
+                angle = preAngle < (startAngle + endAngle) / 2 ? startAngle : endAngle;
             }
             else if (isDrag) {
                 var d = this._handleDragDistance;
-                if (this.isNumber(d)) if (Math.abs(o_angle - o_preAngle) > d) return preAngle;
+                if (this._isNumber(d)) {
+                    var diff = (angle - preAngle);
+                    if (Math.abs(diff) > (this._arcLength - d)) {
+                        return (diff > 0) ? startAngle : endAngle;
+                    }
+                }
             }
             return angle;
         },
         _processStepByAngle: function (angle) {
+            var o = this.options;
             var value = this._angleToValue(angle);
-            return this._processStepByValue(value);
+            var updatedValue = this._processStepByValue(value);
+            var updatedAngle = o.snapToStep ? this._valueToAngle(updatedValue) : angle;
+            return { value: updatedValue, angle: updatedAngle };
         },
         _processStepByValue: function (value) {
             var o = this.options, min = o.min, max = o.max, step = o.step, isMinHigher = (min > max);
-            var remain, currVal, nextVal, preVal, newVal, ang;
+            var remain, preVal, nextVal, midVal, newVal;
             
             step = (isMinHigher ? -step : step);
             remain = (value - min) % step;
 
-            currVal = value - remain;
-            nextVal = this._limitValue(currVal + step);
-            preVal = this._limitValue(currVal - step);
+            preVal = value - remain;
+            nextVal = this._limitValue(preVal + step);
+            midVal = (preVal + nextVal) / 2;
 
-            if(!isMinHigher) {
-                if (value >= currVal) newVal = (value - currVal < nextVal - value) ? currVal : nextVal;
-                else newVal = (currVal - value > value - preVal) ? currVal : preVal;
-            }
-            else {
-                if (value <= currVal) newVal = (currVal - value < value - nextVal) ? currVal : nextVal;
-                else newVal = (value - currVal > preVal - value) ? currVal : preVal;
-            }
-            newVal = this._round(newVal), ang = this._valueToAngle(newVal);
-            return { value: newVal, angle: ang };
+            var isFirstHalf = !isMinHigher ? (value < midVal) : (value > midVal);
+            newVal = isFirstHalf ? preVal : nextVal;
+            newVal = this._round(newVal);
+            return newVal;
         },
         _round: function (val) {
             var s = this.options.step.toString().split(".");
             return s[1] ? parseFloat(val.toFixed(s[1].length)) : Math.round(val);
         },
-        _oriAngle: function (angle) {
-            var ang = angle - this._start;
-            if (ang < 0) ang += 360;
-            return ang;
-        },
-        _limitAngle: function (angle) {
-            if (angle > 360 + this._start) angle -= 360;
-            if (angle < this._start) angle += 360;
-            return angle;
-        },
         _limitValue: function (value) {
             var o = this.options, min = o.min, max = o.max, isMinHigher = (min > max);
-            if ((!isMinHigher && value < min) || (isMinHigher && value > min)) value = min;
-            if ((!isMinHigher && value > max) || (isMinHigher && value < max)) value = max;
+            var _min = isMinHigher ? max : min, _max = isMinHigher ? min : max; 
+            if (value < _min) value = _min;
+            if (value > _max) value = _max;
             return value;
         },
         _angleToValue: function (angle) {
             var o = this.options, min = o.min, max = o.max, value;
-            value = (this._oriAngle(angle) / this._end) * (max - min) + min;
+            value = ((angle - this._start) / this._arcLength) * (max - min) + min;
             return value;
         },
         _valueToAngle: function (value) {
             var o = this.options, min = o.min, max = o.max, angle;
-            angle = (((value - min) / (max - min)) * this._end) + this._start;
+            angle = (((value - min) / (max - min)) * this._arcLength) + this._start;
             return angle;
         },
         _appendHiddenField: function () {
-            var hiddenField = this._hiddenField = this._hiddenField || this.$createElement("input");
+            var hiddenField = this._hiddenField = this._hiddenField || this._createElement("input");
             hiddenField.attr({
                 "type": "hidden", "name": this._dataElement()[0].id || ""
             });
@@ -1096,7 +1184,7 @@
                     marginLeft = -(tooltip.outerWidth() / 2);   // the previous styles so that we can get the proper values.
                 tooltip.removeClass("rs-reset");
 
-                if (circleShape == "full" || circleShape == "pie" || circleShape.indexOf("custom") === 0) {
+                if (this._isFullCircle) {
                     pos = { "margin-top": marginTop, "margin-left": marginLeft };
                 }
                 else if (circleShape == "half-top" || circleShape == "half-bottom") {
@@ -1123,37 +1211,58 @@
             return (returnValue != null && typeof returnValue !== "boolean") ? returnValue : value;
         },
         _validateStartAngle: function () {
-            var options = this.options, start = options.startAngle;
-            start = (this.isNumber(start) ? parseFloat(start) : 0) % 360;
+            var o = this.options, start = o.startAngle;
+            start = (this._isNumber(start) ? parseFloat(start) : 0) % 360;
             if (start < 0) start += 360;
-            options.startAngle = start;
+            o.startAngle = start;
             return start;
         },
         _validateEndAngle: function () {
-            var o = this.options, start = o.startAngle, end = o.endAngle;
-            if (this.isNumber(end)) {
-                if (typeof end === "string" && (end.charAt(0) === "+" || end.charAt(0) === "-")) {
-                    end = start + parseFloat(end);
-                }
-                end = parseFloat(end);
-            }
-            else end = 360;
-
+            var o = this.options, start = o.startAngle;
+            var end = this._calcRelativeValue(o.endAngle, start);
             end %= 360;
             if (end <= start) end += 360;
             return end;
         },
+        _updateHandleSize: function () {
+            var o = this.options, width = o.width;
+            var size = o.handleSize.split(",");
+            var handleWidth = this._calcRelativeValue(size[0], width);
+            var handleHeight = size[1] ? this._calcRelativeValue(size[1], width) : handleWidth;
+
+            var diff = (this.sliderThickness - handleWidth) / 2;
+            this._handles().css({
+                height: handleHeight, width: handleWidth,
+                "margin": -handleHeight / 2 + "px 0 0 " + diff + "px"
+            });
+        },
+        _calcRelativeValue: function (value, baseValue) {
+            var strValue = "" + value;
+            value = parseFloat(value);
+            if (this._isNumber(strValue)) {
+                if (strValue.charAt(0) === "+" || strValue.charAt(0) === "-") {
+                    value += baseValue;
+                }
+            }
+            else value = baseValue;
+            return value;
+        },
         _refreshCircleShape: function () {
             var options = this.options, circleShape = options.circleShape;
-            var allCircelShapes = ["half-top", "half-bottom", "half-left", "half-right",
-                "quarter-top-left", "quarter-top-right", "quarter-bottom-right", "quarter-bottom-left",
-                "pie", "custom-half", "custom-quarter"];
+            var fullCirclesShapes = ["full", "pie", "custom-half", "custom-quarter"];
+            var otherShapes = ["half-top", "half-bottom", "half-left", "half-right",
+                "quarter-top-left", "quarter-top-right", "quarter-bottom-right", "quarter-bottom-left"];
+            var allCircelShapes = fullCirclesShapes.concat(otherShapes);
 
             if (allCircelShapes.indexOf(circleShape) == -1) {
                 if (circleShape == "half") circleShape = "half-top";
                 else if (circleShape == "quarter") circleShape = "quarter-top-left";
-                else circleShape = "full";
+                else {
+                    this._errorLog('The value "'+ circleShape + '" was invalid for the property "circleShape".');
+                    circleShape = "full";
+                }
             }
+            this._isFullCircle = (fullCirclesShapes.indexOf(circleShape) !== -1);
             options.circleShape = circleShape;
         },
         _appendOverlay: function () {
@@ -1163,60 +1272,49 @@
             else if (shape == "custom-half" || shape == "custom-quarter") {
                 this._checkOverlay(".rs-overlay1", 180);
                 if (shape == "custom-quarter")
-                    this._checkOverlay(".rs-overlay2", this._end);
+                    this._checkOverlay(".rs-overlay2", this._arcLength);
             }
         },
         _checkOverlay: function (cls, angle) {
             var overlay = this.container.children(cls);
             if (overlay.length == 0) {
-                overlay = this.$createElement("div" + cls + " rs-transition rs-bg-color");
+                overlay = this._createElement("div" + cls + " rs-transition rs-bg-color");
                 this.container.append(overlay);
             }
             overlay.rsRotate(this._start + angle);
         },
         _checkDataType: function () {
-            var m = this.options, i, prop, value, props = this._props();
-            // to check number datatype
-            for (i in props.numberType) {
-                prop = props.numberType[i], value = m[prop];
-                if (!this.isNumber(value)) m[prop] = this.defaults[prop];
-                else m[prop] = parseFloat(value);
-            }
-            // to check input string
-            for (i in props.booleanType) {
-                prop = props.booleanType[i], value = m[prop];
-                m[prop] = (value == "false") ? false : !!value;
-            }
-            // to check boolean datatype
-            for (i in props.stringType) {
-                prop = props.stringType[i], value = m[prop];
-                m[prop] = ("" + value).toLowerCase();
+            var o = this.options;
+            for (var prop in this._initialOptions) {
+                o[prop] = this._validatePropValue(prop, o[prop], true);
             }
         },
         _validateSliderType: function () {
-            var options = this.options, type = options.sliderType.toLowerCase();
+            var options = this.options, type = options.sliderType;
             this._rangeSlider = this._showRange = this._minRange = false;
             if (type == "range") this._rangeSlider = this._showRange = true;
-            else if (type.indexOf("min") != -1) {
+            else if (type != "default") {
                 this._showRange = this._minRange = true;
                 type = "min-range";
             }
-            else type = "default";
             options.sliderType = type;
         },
         _updateStartEnd: function () {
             var o = this.options, circle = o.circleShape, startAngle = o.startAngle, endAngle = o.endAngle;
 
             if (circle != "full") {
-                if (circle.indexOf("quarter") != -1) endAngle = "+90";
-                else if (circle.indexOf("half") != -1) endAngle = "+180";
+                var QUARTER = "quarter", HALF = "half", 
+                    TOP = "-top", BOTTOM = "-bottom", LEFT = "-left", RIGHT = "-right";
+
+                if (circle.indexOf(QUARTER) != -1) endAngle = "+90";
+                else if (circle.indexOf(HALF) != -1) endAngle = "+180";
                 else if (circle == "pie") endAngle = "+270";
                 o.endAngle = endAngle;
 
-                if (circle == "quarter-top-left" || circle == "half-top") startAngle = 0;
-                else if (circle == "quarter-top-right" || circle == "half-right") startAngle = 90;
-                else if (circle == "quarter-bottom-right" || circle == "half-bottom") startAngle = 180;
-                else if (circle == "quarter-bottom-left" || circle == "half-left") startAngle = 270;
+                if (circle == QUARTER + TOP + LEFT || circle == HALF + TOP) startAngle = 0;
+                else if (circle == QUARTER + TOP + RIGHT || circle == HALF + RIGHT) startAngle = 90;
+                else if (circle == QUARTER + BOTTOM + RIGHT || circle == HALF + BOTTOM) startAngle = 180;
+                else if (circle == QUARTER + BOTTOM + LEFT || circle == HALF + LEFT) startAngle = 270;
                 o.startAngle = startAngle;
             }
         },
@@ -1224,13 +1322,20 @@
             this._start = this._validateStartAngle();
             this._end = this._validateEndAngle();
 
-            var add = (this._start < this._end) ? 0 : 360;
-            this._end += add - this._start;
+            this._arcLength = this._end - this._start;
+        },
+        _backupPreValue: function () {
+            this._pre_handle1 = this._handle1;
+            this._pre_handle2 = this._handle2;
+        },
+        _revertPreValue: function () {
+            this._handle1 = this._pre_handle1;
+            this._handle2 = this._pre_handle2;
+            this.options.value = this._preValue;
         },
         _validateValue: function (isChange) {
             this._backupPreValue();
             this._analyzeModelValue();
-            this._validateModelValue();
 
             if (this._raiseBeforeValueChange(isChange ? "change" : "code")) {
                 this._setValue();
@@ -1242,86 +1347,64 @@
             }
         },
         _analyzeModelValue: function () {
-            var o = this.options, val = o.value, newValue;
-            if (val instanceof Array) val = val.toString();
-            var parts = (typeof val == "string") ? val.split(",") : [val];
-            if (parts.length == 1 && this.isNumber(parts[0])) parts = [o.min, parts[0]];
-            else if (parts.length >= 2 && !this.isNumber(parts[1])) parts[1] = o.max;
+            var o = this.options, _this = this, newVal;
+            var parts = ("" + o.value).split(",");
+
+            var parseModelValue = function (value) {
+                var val = _this._isNumber(value) ? parseFloat(value) : _this._defaultValue();
+                val = _this._limitValue(val);
+                val = _this._processStepByValue(val);
+                var ang = _this._valueToAngle(val);
+                return { value: val, angle: ang };
+            };
 
             if (this._rangeSlider) {
-                newValue = [
-                    this._parseModelValue(parts[0]),
-                    this._parseModelValue(parts[1])
-                ].toString();
-            }
-            else {
-                var lastValue = parts.pop();
-                newValue = this._parseModelValue(lastValue);
-            }
-            o.value = newValue;
-        },
-        _parseModelValue: function (value) {
-            return this.isNumber(value) ? parseFloat(value) : this._defaultValue();
-        },
-        _validateModelValue: function () {
-            var o = this.options, val = o.value;
-            if (this._rangeSlider) {
-                var parts = val.split(","), val1 = parseFloat(parts[0]), val2 = parseFloat(parts[1]);
-                val1 = this._limitValue(val1);
-                val2 = this._limitValue(val2);
-                if (!this._invertRange) {
-                    var min = o.min, max = o.max;
-                    var isMinHigher = (min > max);
-                    if (isMinHigher) {
-                        if (val1 < val2) val1 = val2;
-                    } else {
-                        if (val1 > val2) val2 = val1;
-                    }
+                var h2 = parseModelValue(parts.pop()),
+                    h1 = parseModelValue(parts.pop());
+                if (!o.allowInvertedRange) {
+                    if (h1.angle > h2.angle) h2 = h1;
                 }
+                this._handle1 = h1;
+                this._handle2 = h2;
+                newVal = h1.value + "," + h2.value;
+            }
+            else {
+                var index = this._minRange ? 2 : (this._active || 1);
+                var handle = parseModelValue(parts.pop());
+                this["_handle" + index] = handle;
+                newVal = handle.value;
+            }
 
-                this._handle1 = this._processStepByValue(val1);
-                this._handle2 = this._processStepByValue(val2);
-            }
-            else {
-                var index = this._minRange ? 2 : (this._active || 1);
-                this["_handle" + index] = this._processStepByValue(this._limitValue(val));
-            }
-            this._updateModelValue();
-        },
-        _updateModelValue: function () {
-            var value;
-            if (this._rangeSlider) {
-                value = this._handle1.value + "," + this._handle2.value;
-            }
-            else {
-                var index = this._minRange ? 2 : (this._active || 1);
-                value = this["_handle" + index].value;
-            }
-            this.options.value = value;
+            o.value = newVal;
         },
         _formRangeValue: function (value, index) {
             index = index || this._active;
             var h1 = this._handle1.value, h2 = this._handle2.value;
-            return (index == 1) ? value + "," + h2 : h1 + "," + value;
+            var rangeVal = (index == 1) ? [value, h2] : [h1, value];
+            return rangeVal.join(",");
         },
 
         // common core methods
-        $createElement: function (tag) {
+        _createElement: function (tag) {
             var t = tag.split('.');
             return $(document.createElement(t[0])).addClass(t[1] || "");
         },
-        $createSVG: function (tag, attr) {
-            var t = tag.split('.');
-            var svgEle = document.createElementNS("http://www.w3.org/2000/svg", t[0]);
-            if (t[1]) {
+        _createSVG: function (tag, attr) {
+            var t = tag.split('.'), tagName = t[0], className = t[1];
+            var svgEle = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+            if (className) {
                 svgEle.setAttribute("class", t[1]);
             }
+            if (tagName == "path") {
+                attr = (attr || {});
+                if (!attr.fill) attr["fill"] = "transparent";
+            }
             if (attr) {
-                this.$setAttribute(svgEle, attr);
+                this._setAttribute(svgEle, attr);
             }
             return svgEle;
         },
-        $setAttribute: function (ele, attr) {
+        _setAttribute: function (ele, attr) {
             for (var key in attr) {
                 var val = attr[key];
                 if (key === "class") {
@@ -1332,42 +1415,57 @@
             }
             return ele;
         },
-        $append: function (parent, children) {
+        _append: function (parent, children) {
             children.forEach(function(element) {
                 element && parent.appendChild(element);
             });
             return parent;
         },
-        isNumber: function (number) {
+        _isNumber: function (number) {
             number = parseFloat(number);
             return typeof number === "number" && !isNaN(number);
         },
-        getBrowserName: function () {
-            var browserName = "", ua = window.navigator.userAgent;
+        _getBrowserName: function () {
+            var browserName = "", prefix = "rs-", ua = window.navigator.userAgent;
             if ((!!window.opr && !!opr.addons) || !!window.opera || ua.indexOf(' OPR/') >= 0) browserName = "opera";
             else if (typeof InstallTrigger !== 'undefined') browserName = "firefox";
             else if (ua.indexOf('MSIE ') > 0 || ua.indexOf('Trident/') > 0) browserName = "ie";
             else if (window.StyleMedia) browserName = "edge";
             else if (ua.indexOf('Safari') != -1 && ua.indexOf('Chrome') == -1) browserName = "safari";
             else if ((!!window.chrome && !!window.chrome.webstore) || (ua.indexOf('Chrome') != -1)) browserName = "chrome";
-            return browserName;
+            else prefix = "";
+            return prefix + browserName;
         },
         _isBrowserSupported: function () {
-            var properties = ["borderRadius", "WebkitBorderRadius", "MozBorderRadius",
-                "OBorderRadius", "msBorderRadius", "KhtmlBorderRadius"];
-            for (var i = 0; i < properties.length; i++) {
-                if (document.body.style[properties[i]] !== undefined) return true;
+            if (document.createElementNS) {
+                return true;
             }
-            console.error(pluginName + ' : Browser not supported');
+            this._errorLog('Browser not supported');
+        },
+        _checkDeprecated: function () {
+            var o = this.options;
+            if (this._invertRange) {
+                this._errorLog('You are using "_invertRange" which was deprecated now. Instead please use the "allowInvertedRange" property.');
+            }
+            if (!o.svgMode) {
+                this._errorLog('The property "svgMode: false" was deprecated. Avoid the classic mode of slider, and migrate to the SVG mode.');
+            }
+        },
+        _errorLog: function (msg) {
+            console.error(pluginName + ' : ' + msg);
         },
         _raise: function (event, args) {
             var o = this.options, fn = o[event], val = true;
-            args = args || { value: o.value };
+            args = args || {};
 
             // default event arguments
             args["id"] = this.id;
             args["control"] = this.control;
             args["options"] = o;
+            args["$this"] = this;
+            if (!Object.prototype.hasOwnProperty.call(args, "value")) {
+                args["value"] = o.value;
+            }
 
             if (fn) {
                 args["type"] = event;
@@ -1381,27 +1479,20 @@
             return val;
         },
         _bind: function (element, _event, handler) {
-            $(element).bind(_event, $.proxy(handler, this));
+            $(element).on(_event, $.proxy(handler, this));
         },
         _unbind: function (element, _event, handler) {
-            $(element).unbind(_event, $.proxy(handler, this));
+            $(element).off(_event, $.proxy(handler, this));
         },
         _getInstance: function () {
             return $.data(this._dataElement()[0], pluginName);
         },
-        _saveInstanceOnElement: function () {
-            $.data(this.control[0], pluginName, this);
-        },
-        _saveInstanceOnID: function () {
-            var id = this.id;
-            if (id && typeof window[id] !== "undefined") 
-                window[id] = this;
+        _saveInstanceOnElement: function (ele) {
+            $.data(ele, pluginName, this);
         },
         _removeData: function () {
             var control = this._dataElement()[0];
             $.removeData && $.removeData(control, pluginName);
-            if (control.id && typeof window[control.id]["_init"] === "function") 
-                delete window[control.id];
         },
         _destroyControl: function () {
             if (this._isInputType) this._dataElement().insertAfter(this.control).attr("type", "text");
@@ -1421,26 +1512,29 @@
             if (bool) this.container.addClass("rs-readonly");
         },
 
-        // get & set for the properties
-        _get: function (property) {
-            return this.options[property];
-        },
-        _set: function (property, value, forceSet) {
+        // dynamic property set
+        _validatePropValue: function (property, value, initial) {
             var props = this._props();
             if ($.inArray(property, props.numberType) != -1) {          // to check number datatype
-                if (!this.isNumber(value)) return;
-                value = parseFloat(value);
+                if (!this._isNumber(value)) {
+                    value = initial ? this.defaults[property] : this.options[property];
+                }
+                else value = parseFloat(value);
             }
             else if ($.inArray(property, props.booleanType) != -1) {    // to check boolean datatype
                 value = (value == "false") ? false : !!value;
             }
             else if ($.inArray(property, props.stringType) != -1) {     // to check input string
-                value = value.toLowerCase();
+                value = ("" + value).toLowerCase();
             }
-
+            return value;
+        },
+        _setProp: function (property, value, forceSet) {
+            value = this._validatePropValue(property, value);
             var options = this.options;
             this._preValue = options.value;
-            if (!forceSet && options[property] === value) return;
+            var prePropValue = options[property];
+            if (!forceSet && prePropValue === value) return;
             options[property] = value;
 
             switch (property) {
@@ -1471,23 +1565,23 @@
                     this._updateTooltipPos();
                     break;
                 case "width":
-                    this._removeAnimation();
+                case "pathWidth":
+                case "rangeWidth":
+                case "borderWidth":
                     this._updateWidth();        // non SVG mode only
+                    this._updateSliderThickness();
                     this._setRadius();
-                    this._refreshHandle();
-                    this._updateTooltipPos();
-                    this._addAnimation();
+                    this._updateHandleSize();
                     this._refreshSeperator();   // non SVG mode only
                     break;
-                case "borderWidth":
-                    this._setRadius();
-                    this._refreshHandle();
-                    break;
                 case "handleSize":
-                    this._refreshHandle();
+                    this._updateHandleSize();
                     break;
                 case "handleShape":
-                    this._setHandleShape();
+                    this._setHandleShape(prePropValue);
+                    break;
+                case "handleRotation":
+                    this._setValue();
                     break;
                 case "animation":
                     options.animation ? this._addAnimation() : this._removeAnimation();
@@ -1498,6 +1592,9 @@
                 case "editableTooltip":
                     this._tooltipEditable();
                     this._updateTooltipPos();
+                    break;
+                case "tooltipFormat":
+                    this._updateTooltip();
                     break;
                 case "rangeColor":
                 case "tooltipColor":
@@ -1538,6 +1635,12 @@
 
         // public methods
         option: function (property, value) {
+            return this.set(property, value);
+        },
+        get: function (property) {
+            return this.options[property];
+        },
+        set: function (property, value) {
             if (!property || !this._getInstance()) return;
 
             var options = this.options;
@@ -1561,15 +1664,15 @@
                         val = property[VALUE];
                         delete property[VALUE];
                     }
-                    this._set(VALUE, val, true);
+                    this._setProp(VALUE, val, true);
                 }
                 for (var prop in property) {
-                    this._set(prop, property[prop]);
+                    this._setProp(prop, property[prop]);
                 }
             }
             else if (typeof property == "string") {
-                if (value === undefined) return this._get(property);
-                this._set(property, value);
+                if (value === undefined) return this.get(property);
+                this._setProp(property, value);
             }
 
             // whenever the properties set dynamically, check for SVG mode. also check
@@ -1587,23 +1690,23 @@
             return this;
         },
         getValue: function (index) {
-            if (this._rangeSlider && this.isNumber(index)) {
+            if (this._rangeSlider && this._isNumber(index)) {
                 var i = parseFloat(index);
                 if (i == 1 || i == 2)
                     return this["_handle" + i].value;
             }
-            return this._get("value");
+            return this.get("value");
         },
         setValue: function (value, index) {
-            if (this.isNumber(value)) {
-                if (this.isNumber(index)) {
+            if (this._isNumber(value)) {
+                if (this._isNumber(index)) {
                     if (this._rangeSlider) {
                         var i = parseFloat(index), val = parseFloat(value);
                         value = this._formRangeValue(val, i);
                     }
                     else if (!this._minRange) this._active = index;
                 }
-                this._set("value", value);
+                this._setProp("value", value);
             }
         },
         refreshTooltip: function () {
@@ -1629,11 +1732,9 @@
     };
 
     $.fn.rsRotate = function (degree) {
-        var control = this, rotation = "rotate(" + degree + "deg)";
+        var control = this, rotation = degree != null ? "rotate(" + degree + "deg)" : "";
         control.css('-webkit-transform', rotation);
-        control.css('-moz-transform', rotation);
         control.css('-ms-transform', rotation);
-        control.css('-o-transform', rotation);
         control.css('transform', rotation);
         return control;
     };
@@ -1643,8 +1744,17 @@
         this.id = control.id;
         this.control = $(control);
 
+        this._initialOptions = $.isPlainObject(options) ? options : {};
         // the options value holds the updated defaults value
-        this.options = $.extend({}, this.defaults, options);
+        this.options = $.extend({}, this.defaults, this._initialOptions);
+
+        this._saveInstanceOnElement(control);
+				
+        if (this._raise("beforeCreate") !== false) {
+            this._init();
+            this._raise("create");
+        }
+        else this._removeData();
     }
 
     // The plugin wrapper, prevents multiple instantiations
@@ -1653,28 +1763,29 @@
         for (var i = 0; i < this.length; i++) {
             var that = this[i], instance = $.data(that, pluginName);
             if (!instance) {
-                var _this = new RoundSlider(that, options);
-                _this._saveInstanceOnElement();
-                _this._saveInstanceOnID();
-				
-                if (_this._raise("beforeCreate") !== false) {
-                    _this._init();
-                    _this._raise("create");
-                }
-                else _this._removeData();
+                instance = new RoundSlider(that, options);
             }
             else if ($.isPlainObject(options)) {
-                if (typeof instance.option === "function") instance.option(options);
-                else if (that.id && window[that.id] && typeof window[that.id].option === "function") {
-                    window[that.id].option(options);
-                }
+                instance.set(options);
             }
-            else if (typeof options === "string") {
-                if (typeof instance[options] === "function") {
-                    if ((options === "option" || options.indexOf("get") === 0) && args[2] === undefined) {
-                        return instance[options](args[1]);
-                    }
-                    instance[options](args[1], args[2]);
+
+            if (typeof options === "string") {
+                if (args[0] === "option") {
+                    Array.prototype.shift.call(args);
+                }
+                var prop = args[0], returnVal;
+
+                if (Object.prototype.hasOwnProperty.call(instance.options, prop)) {
+                    var value = args[1];
+                    returnVal = instance.set(prop, value);
+                    if (value === undefined) return returnVal;
+                }
+                else if (typeof instance[prop] === "function") {
+                    returnVal = instance[prop](args[1], args[2]);
+                    if (prop.indexOf("get") === 0) return returnVal;
+                }
+                else if ($.isPlainObject(prop)) {
+                    instance.set(prop);
                 }
             }
         }
@@ -1682,8 +1793,9 @@
     }
 
     // ### SVG related logic
-    RoundSlider.prototype.$polarToCartesian = function (centerXY, radius, angleInDegrees) {
+    RoundSlider.prototype._polarToCartesian = function (radius, angleInDegrees) {
         var angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+        var centerXY = this.options.radius;
     
         return [
             centerXY + (radius * Math.cos(angleInRadians)),
@@ -1691,22 +1803,27 @@
         ].join(" ");
     };
 
-    RoundSlider.prototype.$drawArc = function (centerXY, radius, startAngle, endAngle, isOuter) {
+    RoundSlider.prototype._drawArc = function (startAngle, endAngle, radius, isReverseDirection) {
+        var actualEndAngle = endAngle;
+        // For inverted range (and consider semi circle), the range should start from the Start angle
+        // and will end in the slider end. And again start with the slider start and ends with the End angle
+        var isInvertedRange = (startAngle > endAngle);
+        if (isInvertedRange) {
+            endAngle = this._end;
+        }
+    
         var isCircle = (endAngle - startAngle == 360);
         var largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
-        var isClockwise = true;
-        var outerDirection = isClockwise ? 1 : 0;
-        var innerDirection = isClockwise ? 0 : 1;
-        var direction = isOuter ? outerDirection : innerDirection;
-        var _endAngle = isOuter ? endAngle : startAngle;
-        var endPoint = this.$polarToCartesian(centerXY, radius, _endAngle);
+        var direction = isReverseDirection ? 0 : 1;
+        var _endAngle = isReverseDirection ?  startAngle : endAngle;
+        var endPoint = this._polarToCartesian(radius, _endAngle);
     
         var path = [];
     
         // if it is a perfect circle then draw two half circles, otherwise draw arc
         if (isCircle) {
             var midAngle = (startAngle + endAngle) / 2;
-            var midPoint = this.$polarToCartesian(centerXY, radius, midAngle);
+            var midPoint = this._polarToCartesian(radius, midAngle);
             path.push(
                 "A", 1, 1, 0, 0, direction, midPoint,
                 "A", 1, 1, 0, 0, direction, endPoint
@@ -1716,28 +1833,44 @@
             path.push(
                 "A", radius, radius, 0, largeArcFlag, direction, endPoint
             );
+    
+            if (isInvertedRange) {
+                var sliderStartAngle = this._start;
+                var sliderStartPoint = this._polarToCartesian(radius, sliderStartAngle);
+    
+                path.push(
+                    "M " + sliderStartPoint,
+                    this._drawArc(sliderStartAngle, actualEndAngle, radius)
+                );
+            }
         }
     
         return path.join(" ");
     };
 
-    RoundSlider.prototype.$drawPath = function (centerXY, outerRadius, startAngle, endAngle, innerRadius, lineCap){
-        var outerStart = this.$polarToCartesian(centerXY, outerRadius, startAngle);
-        var outerArc = this.$drawArc(centerXY, outerRadius, startAngle, endAngle, true);          // draw outer circle
+    RoundSlider.prototype._drawPath = function (startAngle, endAngle, outerRadius, innerRadius, lineCap){
+        var o = this.options;
+        if (outerRadius == undefined) outerRadius = this.centerRadius;
+        if (lineCap == undefined) lineCap = o.lineCap;
+
+        var outerStart = this._polarToCartesian(outerRadius, startAngle);
+        var outerArc = this._drawArc(startAngle, endAngle, outerRadius);          // draw outer circle
     
         var d = [
             "M " + outerStart,
             outerArc
         ];
     
-        if (innerRadius) {
-            var innerEnd = this.$polarToCartesian(centerXY, innerRadius, endAngle);
-            var innerArc = this.$drawArc(centerXY, innerRadius, startAngle, endAngle, false);     // draw inner circle
+        if (this._isNumber(innerRadius) && innerRadius !== outerRadius) {
+            var innerEnd = this._polarToCartesian(innerRadius, endAngle);
+            var innerArc = this._drawArc(startAngle, endAngle, innerRadius, true);     // draw inner circle
             
-            if (lineCap == "none") {
+            if (lineCap == "butt") {
                 d.push(
-                    "M " + innerEnd,
-                    innerArc
+                    "L " + innerEnd,
+                    innerArc,
+                    "L " + outerStart,
+                    "Z"
                 );
             }
             else if (lineCap == "round") {
@@ -1747,23 +1880,47 @@
                     "A 1, 1, 0, 0, 1, " + outerStart
                 );
             }
-            else if (lineCap == "butt" || lineCap == "square") {
+            else if (lineCap == "square") {
+                // drawing the square lineCap is little tricky. We have the inner and outer start, end points only.
+                // from those points we have to identify the square's other corner points. But those points won't available in
+                // the circle's path (not in the outer and inner radius), it's over the straight line from those points.
+                // 1) So we have to find the outer and inner square end's radius (r), using Pythagorean Theorem
+                // 2) Based on that radius we have to find the angle of those points (θ)
+                // 3) Then you can easily convert those Polar Coordinates (r,θ) to Cartesian Coordinates (x,y)
+                var lineCapLength = (o.width + o.borderWidth) / 2;
+                var outerRadiusSQR = Math.pow(outerRadius, 2),
+                    innerRadiusSQR = Math.pow(innerRadius, 2),
+                    lineCapLengthSQR = Math.pow(lineCapLength, 2);
+
+                // Pythagorean Theorem => c = √(a2+b2)
+                var squareOuterRadius = Math.sqrt(outerRadiusSQR + lineCapLengthSQR);
+                var squareInnerRadius = Math.sqrt(innerRadiusSQR + lineCapLengthSQR);
+
+                var squareOuterAngle = this._getArcAngle(lineCapLength, squareOuterRadius);
+                var squareInnerAngle = this._getArcAngle(lineCapLength, squareInnerRadius);
+
+                var endSquare_OuterCorner = this._polarToCartesian(squareOuterRadius, endAngle + squareOuterAngle);
+                var endSquare_InnerCorner = this._polarToCartesian(squareInnerRadius, endAngle + squareInnerAngle);
+                var startSquare_OuterCorner = this._polarToCartesian(squareOuterRadius, startAngle - squareOuterAngle);
+                var startSquare_InnerCorner = this._polarToCartesian(squareInnerRadius, startAngle - squareInnerAngle);
+
                 d.push(
+                    "L " + endSquare_OuterCorner, "L " + endSquare_InnerCorner,
                     "L " + innerEnd,
                     innerArc,
+                    "L " + startSquare_InnerCorner, "L " + startSquare_OuterCorner,
                     "L " + outerStart,
                     "Z"
                 );
             }
+            else if (lineCap == "none") {
+                d.push(
+                    "M " + innerEnd,
+                    innerArc
+                );
+            }
         }
         return d.join(" ");
-    };
-
-    RoundSlider.prototype.$getArcLength = function (radius, degree) {
-        // when degree not provided we can consider that arc as a complete circle
-        if (typeof degree == "undefined") degree = 360;
-        // circle's arc length formula => 2πR(Θ/360)
-        return 2 * Math.PI * radius * (degree / 360);
     };
 
     $.fn[pluginName].prototype = RoundSlider.prototype;

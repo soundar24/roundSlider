@@ -15,26 +15,22 @@
 .rs-control *, .rs-control *:before, .rs-control *:after {
     box-sizing: border-box;
 }
-.rs-animation .rs-transition
-{
+.rs-animation .rs-transition {
     transition: all 0.5s linear 0s;
 }
-.rs-bar
-{
+.rs-bar {
     -webkit-transform-origin: 100% 50%;
         -ms-transform-origin: 100% 50%;
             transform-origin: 100% 50%;
 }
 .rs-control .rs-split .rs-path,
 .rs-control .rs-overlay1,
-.rs-control .rs-overlay2
-{
+.rs-control .rs-overlay2 {
     -webkit-transform-origin: 50% 100%;
         -ms-transform-origin: 50% 100%;
             transform-origin: 50% 100%;
 }
-.rs-control .rs-overlay
-{
+.rs-control .rs-overlay {
     -webkit-transform-origin: 100% 100%;
         -ms-transform-origin: 100% 100%;
             transform-origin: 100% 100%;
@@ -45,8 +41,7 @@
 .rs-disabled {
     opacity: 0.35;
 }
-.rs-inner-container
-{
+.rs-inner-container {
     height: 100%;
     width: 100%;
     position: absolute;
@@ -61,8 +56,7 @@
 .rs-control .rs-bottom .rs-block { top: auto; bottom: 0; }
 .rs-control .rs-right .rs-block { right: 0; }
 .rs-block.rs-outer { border-radius: 1000px; }
-.rs-block
-{
+.rs-block {
     height: 100%;
     width: 100%;
     display: block;
@@ -71,8 +65,7 @@
     overflow: hidden;
     z-index: 3;
 }
-.rs-block .rs-inner
-{
+.rs-block .rs-inner {
     border-radius: 1000px;
     display: block;
     height: 100%;
@@ -81,16 +74,14 @@
 }
 .rs-overlay { width: 50%; }
 .rs-overlay1, .rs-overlay2 { width: 100%; }
-.rs-overlay, .rs-overlay1, .rs-overlay2
-{
+.rs-overlay, .rs-overlay1, .rs-overlay2 {
     position: absolute;
     background-color: white;
     z-index: 3;
     top: 0;
     height: 50%;
 }
-.rs-bar
-{
+.rs-bar {
     display: block;
     position: absolute;
     bottom: 0;
@@ -119,11 +110,8 @@
 .rs-bottom .rs-bar { top: 0; }
 .rs-half.rs-right .rs-bar, .rs-quarter.rs-right .rs-bar { right: 100%; }
 
-.rs-handle.rs-move { cursor: move; }
-.rs-readonly .rs-handle.rs-move { cursor: default; }
 .rs-classic-mode .rs-path { display: block; height: 100%; width: 100%; }
-.rs-split .rs-path
-{
+.rs-split .rs-path {
     border-radius: 1000px 1000px 0 0;
     overflow: hidden;
     height: 50%;
@@ -147,8 +135,7 @@
 }
 
 /*** tooltip styles ***/
-.rs-tooltip
-{
+.rs-tooltip {
     position: absolute;
     cursor: default;
     border: 1px solid transparent;
@@ -163,9 +150,11 @@
 .rs-half.rs-left .rs-tooltip, .rs-half.rs-right .rs-tooltip { top: 50%; }
 .rs-tooltip .rs-input { outline: 0 none; border: none; background: transparent; }
 .rs-tooltip-text { font-family: verdana; font-size: 13px; border-radius: 7px; text-align: center; color: inherit; }
-.rs-tooltip.rs-edit { padding: 5px 8px; }
-.rs-tooltip.rs-hover, .rs-tooltip.rs-edit:hover { border: 1px solid #AAAAAA; cursor: pointer; }
-.rs-readonly .rs-tooltip.rs-edit:hover { border-color: transparent; cursor: default; }
+.rs-tooltip.rs-editable { padding: 5px 8px; }
+.rs-tooltip.rs-hover,
+.rs-tooltip.rs-editable:hover { border-color: #AAAAAA; cursor: pointer; }
+.rs-control.rs-dragging .rs-tooltip.rs-editable:hover,
+.rs-container.rs-readonly .rs-tooltip.rs-editable:hover { border-color: transparent; cursor: default; }
 
 /*** Fix for tooltip positioning when element in hidden state ***/
 /*** maybe in future we can consider this as the default way ***/
@@ -190,16 +179,23 @@
 .rs-tooltip.rs-reset { margin: 0px !important; top: 0px !important; left: 0px !important; }
 
 /*** handle types ***/
-.rs-handle { border-radius: 1000px; outline: 0 none; float: left; }
+.rs-handle {
+    cursor: move;
+    border-radius: 1000px; outline: 0 none; float: left; 
+    display: -ms-flexbox; 
+    display: flex;
+    -ms-flex-align: center;
+        align-items: center;
+    -ms-flex-pack: center;
+        justify-content: center;
+}
+.rs-control.rs-dragging .rs-handle,
+.rs-container.rs-readonly .rs-handle { cursor: default; }
+
 .rs-handle.rs-handle-square { border-radius: 0px; }
-.rs-handle-dot { border: 1px solid #AAAAAA; padding: 6px; }
-.rs-handle-dot:after {
-    display: block;
-    content: "";
-    border: 1px solid #AAAAAA;
-    height: 100%;
-    width: 100%;
+.rs-handle-dot-inner {
     border-radius: 1000px;
+    padding: 20%;
 }
 
 /*** theming - colors ***/
@@ -208,27 +204,12 @@
 .rs-path-color { background-color: #FFFFFF; }
 .rs-range-color { background-color: #54BBE0; }
 .rs-bg-color { background-color: #FFFFFF; }
+
 .rs-handle { background-color: #838383; }
-.rs-handle-dot { background-color: #FFFFFF; }
-.rs-handle-dot:after { background-color: #838383; }
+.rs-handle-dot { background-color: #fff; border: 1px solid #838383; }
+.rs-handle-dot-inner { background-color: #838383; }
 
 /*** SVG mode - theming - colors ***/
 .rs-path-inherited .rs-path {
-    opacity: 0.2;
-}
-.rs-svg-mode .rs-path {
-    /*  this will change the slider's path color
-        this can be also done via the property -> 'pathColor'  */
-    stroke: #FFFFFF;
-}
-.rs-svg-mode .rs-range {
-    /*  this will change the slider's range color
-        this can be also done via the property -> 'rangeColor'  */
-    stroke: #54BBE0;
-}
-.rs-svg-mode .rs-border {
-    /*  this will change the slider's border color
-        this can be also done via the property -> 'borderColor'
-        the border width can be changed via the property -> 'borderWidth'  */
-    stroke: #AAAAAA;
+    opacity: 0.25;
 }
