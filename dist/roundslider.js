@@ -2,7 +2,7 @@
 * round-slider v2.0.0-alpha
 *
 * @website http://roundsliderui.com/
-* @copyright (c) 2015-2021 Soundar
+* @copyright (c) 2015-2022 Soundar
 * @license MIT
 */
 
@@ -992,7 +992,7 @@
             dashArray.push(handle1Distance);
 
             var handle2Distance = ((handle2Angle - handle1Angle) / totalAngle) * this.svgPathLength;
-            dashArray.push(handle2Distance, this.svgPathLength);
+            dashArray.push(handle2Distance, Math.ceil(this.svgPathLength));
 
             this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
