@@ -992,7 +992,7 @@
             dashArray.push(handle1Distance);
 
             var handle2Distance = ((handle2Angle - handle1Angle) / totalAngle) * this.svgPathLength;
-            dashArray.push(handle2Distance, this.svgPathLength);
+            dashArray.push(handle2Distance, Math.ceil(this.svgPathLength));
 
             this.$rangeEle.style.strokeDasharray = dashArray.join(" ");
         },
